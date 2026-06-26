@@ -1,0 +1,6 @@
+name: lightDarkWorld
+version: '${version}'
+
+main: org.pl.lightDarkWorld.RandomEnchantPlugin
+api-version: '26.1.2'
+load: POSTWORLD
