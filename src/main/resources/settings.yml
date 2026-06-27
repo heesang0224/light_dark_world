@@ -1,0 +1,59 @@
+# ==========================
+# Random Enchant Settings
+# ==========================
+
+# 최대 랜덤 인첸트 개수
+max-enchants: 5
+
+# 모든 아이템에 모든 바닐라 인첸트 허용
+unsafe-enchant: true
+
+# 인첸트 테이블 GUI 제목
+gui-title: "랜덤 인첸트"
+
+# 인첸트 비용
+cost:
+  levels: 30
+  lapis: 3
+
+# 인첸트 성공 확률
+success-chance:
+  1: 100.0
+  2: 95.0
+  3: 90.0
+  4: 85.0
+  5: 80.0
+
+# 인첸트 레벨 가중치
+level-weight:
+  1: 45
+  2: 30
+  3: 15
+  4: 8
+  5: 2
+
+# 제외할 인첸트
+blacklist:
+  - minecraft:binding_curse
+  - minecraft:vanishing_curse
+
+# GUI 슬롯
+slots:
+  item: 22
+  enchant: 31
+  info: 15
+  close: 49
+
+sounds:
+  success: ENTITY_PLAYER_LEVELUP
+  fail: ENTITY_ITEM_BREAK
+  click: UI_BUTTON_CLICK
+
+particles:
+  success: ENCHANT
+  fail: SMOKE
+
+messages:
+  max: "&c이미 최대 인첸트입니다."
+  success: "&a랜덤 인첸트 성공!"
+  fail: "&c인첸트 실패!"

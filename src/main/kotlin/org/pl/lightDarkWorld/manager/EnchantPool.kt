@@ -8,5 +8,6 @@ object EnchantPool {
         Enchantment::class.java.fields
             .filter { it.type == Enchantment::class.java }
             .mapNotNull { it.get(null) as? Enchantment }
+
     }
 }

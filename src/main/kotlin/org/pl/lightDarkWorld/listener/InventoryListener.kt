@@ -97,6 +97,7 @@ class InventoryListener : Listener {
         event.isCancelled = true
     }
 
+
     @EventHandler
     fun onClose(event: InventoryCloseEvent) {
 

@@ -7,6 +7,7 @@ object ItemUtil {
 
     fun canEnchant(item: ItemStack?): Boolean {
 
+
         if (item == null || item.type.isAir) return false
 
         return when (item.type) {
