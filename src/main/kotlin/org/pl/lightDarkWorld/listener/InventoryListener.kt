@@ -10,6 +10,10 @@ import org.pl.lightDarkWorld.gui.EnchantGUI
 import org.pl.lightDarkWorld.gui.GUIHolder
 import org.pl.lightDarkWorld.manager.RandomEnchantManager
 import org.pl.lightDarkWorld.util.ItemUtil
+import org.pl.lightDarkWorld.RandomEnchantPlugin
+import org.bukkit.Sound
+import org.bukkit.NamespacedKey
+import org.bukkit.persistence.PersistentDataType
 
 
 class InventoryListener : Listener {
@@ -38,6 +42,17 @@ class InventoryListener : Listener {
 
                     val item = holder.item ?: return
 
+                    // 랜덤 인첸트 전 청금석 비용 확인
+                    val lapisCost = RandomEnchantPlugin.instance.configManager.settings.getInt("cost.lapis", 4)
+
+                    if (!ItemUtil.consumeLapis(player, lapisCost)) {
+                        // 청금석 부족 — 모루 소리 재생 및 알림
+                        player.playSound(player.location, Sound.BLOCK_ANVIL_LAND, 1.0f, 1.0f)
+
+
+                        return
+                    }
+
                     if (RandomEnchantManager.enchant(item)) {
 
                         holder.item = item
@@ -46,6 +61,22 @@ class InventoryListener : Listener {
                             EnchantGUI.ITEM_SLOT,
                             item
                         )
+
+                        // 플레이어별 인첸트 횟수 증가. 3회마다 추가 인첸트 1줄 적용
+                        val countKey = NamespacedKey(RandomEnchantPlugin.instance, "enchant_count")
+                        val pdc = player.persistentDataContainer
+                        val current = pdc.getOrDefault(countKey, PersistentDataType.INTEGER, 0)
+                        val updated = current + 1
+                        pdc.set(countKey, PersistentDataType.INTEGER, updated)
+
+                        if (updated % 5 == 0) {
+                            // 추가 인첸트 시도
+                            if (RandomEnchantManager.enchant(item)) {
+                                holder.item = item
+                                event.inventory.setItem(EnchantGUI.ITEM_SLOT, item)
+                                player.sendMessage("§a3회 인첸트 달성 — 추가 인첸트가 적용되었습니다.")
+                            }
+                        }
 
                     }
 

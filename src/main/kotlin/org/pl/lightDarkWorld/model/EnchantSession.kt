@@ -6,8 +6,6 @@ data class EnchantSession(
 
     var item: ItemStack? = null,
 
-    var enchantCount: Int = 0,
-
-    var successChance: Double = 100.0
+    var enchantCount: Int = 0
 
 )

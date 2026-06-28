@@ -1,7 +1,9 @@
 package org.pl.lightDarkWorld.util
 
 import org.bukkit.Material
+import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+
 
 object ItemUtil {
 
@@ -13,6 +15,7 @@ object ItemUtil {
         return when (item.type) {
 
             // 검
+            Material.COPPER_SWORD,
             Material.WOODEN_SWORD,
             Material.STONE_SWORD,
             Material.IRON_SWORD,
@@ -21,6 +24,7 @@ object ItemUtil {
             Material.NETHERITE_SWORD,
 
                 // 도끼
+            Material.COPPER_AXE,
             Material.WOODEN_AXE,
             Material.STONE_AXE,
             Material.IRON_AXE,
@@ -29,6 +33,7 @@ object ItemUtil {
             Material.NETHERITE_AXE,
 
                 // 곡괭이
+            Material.COPPER_PICKAXE,
             Material.WOODEN_PICKAXE,
             Material.STONE_PICKAXE,
             Material.IRON_PICKAXE,
@@ -37,6 +42,7 @@ object ItemUtil {
             Material.NETHERITE_PICKAXE,
 
                 // 삽
+            Material.COPPER_SHOVEL,
             Material.WOODEN_SHOVEL,
             Material.STONE_SHOVEL,
             Material.IRON_SHOVEL,
@@ -45,6 +51,7 @@ object ItemUtil {
             Material.NETHERITE_SHOVEL,
 
                 // 괭이
+            Material.COPPER_HOE,
             Material.WOODEN_HOE,
             Material.STONE_HOE,
             Material.IRON_HOE,
@@ -124,5 +131,44 @@ object ItemUtil {
 
             else -> false
         }
+    }
+
+
+
+    /**
+     * 청금석(화폐) 소비. 인벤토리에서 LAPIS_LAZULI 아이템을 찾아 amount만큼 소모한다.
+     * 총량을 먼저 확인하여 부족하면 어떤 아이템도 소모하지 않도록 원자적으로 처리한다.
+     */
+    fun consumeLapis(player: Player, amount: Int): Boolean {
+        val inv = player.inventory
+
+        // 총 보유량 계산
+        var total = 0
+        for (i in 0 until inv.size) {
+            val current = inv.getItem(i) ?: continue
+            if (current.type != Material.LAPIS_LAZULI) continue
+            total += current.amount
+        }
+
+        if (total < amount) return false // 부족하면 아무 것도 소모하지 않음
+
+        // 충분하면 실제로 소모
+        var remaining = amount
+        for (i in 0 until inv.size) {
+            val current = inv.getItem(i) ?: continue
+            if (current.type != Material.LAPIS_LAZULI) continue
+
+            if (current.amount > remaining) {
+                current.amount -= remaining
+                inv.setItem(i, current)
+                remaining = 0
+                break
+            } else {
+                remaining -= current.amount
+                inv.setItem(i, null)
+            }
+        }
+
+        return remaining == 0
     }
 }
