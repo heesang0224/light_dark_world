@@ -4,6 +4,7 @@ import org.bukkit.plugin.java.JavaPlugin
 import org.pl.lightDarkWorld.config.ConfigManager
 import org.pl.lightDarkWorld.listener.EnchantTableListener
 import org.pl.lightDarkWorld.listener.InventoryListener
+import org.pl.lightDarkWorld.listener.AnvilListener
 
 class RandomEnchantPlugin : JavaPlugin() {
 
@@ -19,6 +20,7 @@ class RandomEnchantPlugin : JavaPlugin() {
 
         server.pluginManager.registerEvents(EnchantTableListener(), this)
         server.pluginManager.registerEvents(InventoryListener(), this)
+        server.pluginManager.registerEvents(AnvilListener(), this)
         // 명령어 등록
         getCommand("star_dust")?.setExecutor(org.pl.lightDarkWorld.command.StartDustCommand())
         configManager = ConfigManager(this)

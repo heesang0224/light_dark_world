@@ -171,4 +171,57 @@ object ItemUtil {
 
         return remaining == 0
     }
+
+    /**
+     * 강화 가능 여부를 확인한다.
+     * 인첸트와 동일한 아이템들에 강화 적용 가능.
+     */
+    fun canEnhance(item: ItemStack?): Boolean {
+        return canEnchant(item)
+    }
+
+    /**
+     * 아이템 로어에 강화 레벨을 표시한다.
+     * 1강 = ★☆☆☆☆☆☆☆☆☆
+     * 10강 = ★★★★★★★★★★
+     */
+    fun setEnhancementLore(item: ItemStack, level: Int) {
+        val meta = item.itemMeta ?: return
+
+        val lore = mutableListOf<net.kyori.adventure.text.Component>()
+
+        // 기존 로어 (강화 표시 제외)
+        val existingLore = meta.lore() ?: emptyList()
+        existingLore.forEach { component ->
+            val text = component.toString()
+            if (!text.contains("★") && !text.contains("☆")) {
+                lore.add(component)
+            }
+        }
+
+        // 강화 표시 추가
+        if (level > 0) {
+            val enhancement = "★".repeat(level) + "☆".repeat(10 - level)
+            lore.add(0, net.kyori.adventure.text.Component.text("§6강화: $enhancement"))
+        }
+
+        meta.lore(lore)
+        item.itemMeta = meta
+    }
+
+    /**
+     * 플레이어의 XP를 소비한다.
+     */
+    fun consumeXP(player: Player, levels: Int): Boolean {
+        if (player.level < levels) return false
+        player.level -= levels
+        return true
+    }
+
+    /**
+     * 플레이어의 XP 레벨을 가져온다.
+     */
+    fun getPlayerXPLevel(player: Player): Int {
+        return player.level
+    }
 }
