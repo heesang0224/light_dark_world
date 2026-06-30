@@ -188,21 +188,33 @@ object ItemUtil {
     fun setEnhancementLore(item: ItemStack, level: Int) {
         val meta = item.itemMeta ?: return
 
+        val settings = org.pl.lightDarkWorld.RandomEnchantPlugin.instance.configManager.settings
+        val max = settings.getInt("max-enhancement", 10)
+
         val lore = mutableListOf<net.kyori.adventure.text.Component>()
 
         // 기존 로어 (강화 표시 제외)
         val existingLore = meta.lore() ?: emptyList()
         existingLore.forEach { component ->
             val text = component.toString()
-            if (!text.contains("★") && !text.contains("☆")) {
+            if (!text.contains("★") && !text.contains("☆") && !text.contains("성공확률") && !text.contains("파괴확률")) {
                 lore.add(component)
             }
         }
 
-        // 강화 표시 추가
-        if (level > 0) {
-            val enhancement = "★".repeat(level) + "☆".repeat(10 - level)
-            lore.add(0, net.kyori.adventure.text.Component.text("§6강화: $enhancement"))
+        // 강화 표시 추가 (항상 표시, 0강은 ☆만)
+        val enhancement = "★".repeat(level) + "☆".repeat(max - level)
+        lore.add(0, net.kyori.adventure.text.Component.text("§6강화: $enhancement"))
+
+        // 다음 레벨 확률 표시 (가능한 경우)
+        if (level < max) {
+            val target = level + 1
+            val success = settings.getInt("enhancement-success-rate.$target", 100 - (target - 1) * 10)
+            val br = settings.getInt("enhancement-break-rate.$target", 0)
+
+            lore.add(net.kyori.adventure.text.Component.text(""))
+            lore.add(net.kyori.adventure.text.Component.text("성공확률: ").append(net.kyori.adventure.text.Component.text("${success}%").color(net.kyori.adventure.text.format.NamedTextColor.GREEN)))
+            lore.add(net.kyori.adventure.text.Component.text("파괴확률: ").append(net.kyori.adventure.text.Component.text("${br}%").color(net.kyori.adventure.text.format.NamedTextColor.RED)))
         }
 
         meta.lore(lore)

@@ -1,6 +1,7 @@
 package org.pl.lightDarkWorld.gui
 
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -16,11 +17,12 @@ object EnchantGUI {
     fun open(player: Player) {
 
         val holder = GUIHolder()
+        holder.guiType = "enchant"
 
         val inv: Inventory = Bukkit.createInventory(
             holder,
             54,
-            Component.text("랜덤 인첸트")
+            Component.text("랜덤 인첸트", NamedTextColor.AQUA)
         )
 
         holder.setInventory(inv)

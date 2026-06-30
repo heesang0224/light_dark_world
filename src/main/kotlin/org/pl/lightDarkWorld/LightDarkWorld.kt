@@ -21,8 +21,8 @@ class RandomEnchantPlugin : JavaPlugin() {
         server.pluginManager.registerEvents(EnchantTableListener(), this)
         server.pluginManager.registerEvents(InventoryListener(), this)
         server.pluginManager.registerEvents(AnvilListener(), this)
-        // 명령어 등록
-        getCommand("star_dust")?.setExecutor(org.pl.lightDarkWorld.command.StartDustCommand())
+
+
         configManager = ConfigManager(this)
         configManager.load()
         println("********************")

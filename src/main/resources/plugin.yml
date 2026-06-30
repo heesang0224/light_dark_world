@@ -5,10 +5,3 @@ main: org.pl.lightDarkWorld.RandomEnchantPlugin
 api-version: '26.1.2'
 load: POSTWORLD
 
-commands:
-  star_dust:
-    description: Give Star Dust item
-    usage: /star_dust [player] [amount]
-    permission: lightdarkworld.command.startdust
-    permission-message: "You don't have permission to use this command."
-
