@@ -5,6 +5,7 @@ import org.pl.lightDarkWorld.config.ConfigManager
 import org.pl.lightDarkWorld.listener.EnchantTableListener
 import org.pl.lightDarkWorld.listener.InventoryListener
 import org.pl.lightDarkWorld.listener.AnvilListener
+import org.pl.lightDarkWorld.listener.EnhancementAbilityListener
 
 class RandomEnchantPlugin : JavaPlugin() {
 
@@ -21,6 +22,7 @@ class RandomEnchantPlugin : JavaPlugin() {
         server.pluginManager.registerEvents(EnchantTableListener(), this)
         server.pluginManager.registerEvents(InventoryListener(), this)
         server.pluginManager.registerEvents(AnvilListener(), this)
+        server.pluginManager.registerEvents(EnhancementAbilityListener(), this)
 
 
         configManager = ConfigManager(this)
