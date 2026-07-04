@@ -1,7 +1,8 @@
 package org.pl.lightDarkWorld.listener
 
 import com.destroystokyo.paper.event.player.PlayerArmorChangeEvent
-import com.destroystokyo.paper.event.player.PlayerJumpEvent
+
+import org.bukkit.event.player.PlayerRiptideEvent
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
@@ -16,7 +17,7 @@ import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityShootBowEvent
-import org.bukkit.event.entity.ProjectileHitEvent
+
 import org.bukkit.event.entity.ProjectileLaunchEvent
 import org.bukkit.event.player.PlayerFishEvent
 import org.bukkit.event.player.PlayerInteractEvent
@@ -28,10 +29,11 @@ import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.util.Vector
 import org.pl.lightDarkWorld.RandomEnchantPlugin
 import org.pl.lightDarkWorld.manager.EnhancementManager
-import org.pl.lightDarkWorld.manager.EquipmentAttributeManager
+
 import java.util.UUID
 import org.bukkit.entity.AbstractArrow
-import org.bukkit.entity.LivingEntity
+import org.pl.lightDarkWorld.manager.EquipmentAttributeManager
+
 import java.util.concurrent.ThreadLocalRandom
 
 /**
@@ -42,14 +44,36 @@ class EnhancementAbilityListener : Listener {
 
     private val maceCooldown = mutableMapOf<UUID, Long>()
     private val dashCooldown = mutableMapOf<UUID, Long>()
+    private val tridentCooldown = mutableMapOf<UUID, Long>()
+
+    // 분산 삼지창을 launchProjectile로 생성하는 동안, 그 스폰이 다시
+    // onTridentLaunch를 재귀 호출하는 것을 막기 위한 플래그.
+    // (launchProjectile은 리턴 전에 ProjectileLaunchEvent를 동기 발생시키는데,
+    //  PDC 태그는 리턴 이후에나 붙기 때문에 태그 체크만으로는 재귀를 못 막는다.)
+    private var isSpawningTridentBurst = false
 
     private val bowLevelKey get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_bow_level")
     private val tridentBurstKey get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_trident_burst")
 
-    // =========================
-    // 도끼: 크리티컬 데미지% 보정
-    // =========================
+// =========================
+// 도끼: 크리티컬 데미지% 보정
+// =========================
+    @EventHandler
+    fun onAxeCriticalHit(event: EntityDamageByEntityEvent) {
+        // 바닐라가 이미 크리티컬로 판정한 타격에만 추가 보정을 적용한다.
+        if (!event.isCritical) return
 
+        val player = event.damager as? Player ?: return
+        val item = player.inventory.itemInMainHand
+        if (EquipmentAttributeManager.kindOf(item.type) != EquipmentAttributeManager.EquipmentKind.AXE) return
+
+        val level = EnhancementManager.getLevel(item)
+        if (level <= 0) return
+
+        val settings = RandomEnchantPlugin.instance.configManager.settings
+        val percent = settings.getDouble("enhancement-attributes.axe.critical_damage_percent.$level", level * 1.0)
+        event.damage *= (1 + percent / 100.0)
+    }
 
 
 
@@ -111,9 +135,13 @@ class EnhancementAbilityListener : Listener {
 
     // =========================
     // 삼지창 10강: 분산 발사 (설정 기반)
+    // 일반 투척과 급류(Riptide) 발사 두 경로 모두 처리한다.
     // =========================
     @EventHandler
     fun onTridentLaunch(event: ProjectileLaunchEvent) {
+        // 버스트 삼지창 생성 도중 발생하는 재귀 호출은 즉시 무시한다.
+        if (isSpawningTridentBurst) return
+
         val trident = event.entity as? Trident ?: return
 
         // 분산 발사로 생성된 삼지창이 재귀적으로 또 분산되는 것 방지
@@ -124,36 +152,85 @@ class EnhancementAbilityListener : Listener {
         if (item.type != Material.TRIDENT) return
         if (EnhancementManager.getLevel(item) < 10) return
 
+        // 일반 투척은 취소하고, 대신 분산 버스트로 대체한다.
         event.isCancelled = true
+        fireTridentBurst(shooter)
+    }
 
+    // 급류(Riptide) 인챈트로 발사한 경우, 삼지창은 던져지지 않고 플레이어가
+    // 발사되므로 Trident 투사체 자체가 스폰되지 않는다. 이 경우
+    // ProjectileLaunchEvent가 발생하지 않으므로 별도로 감지해야 한다.
+    @EventHandler
+    fun onTridentRiptide(event: PlayerRiptideEvent) {
+        val shooter = event.player
+        val item = event.item
+        if (item.type != Material.TRIDENT) return
+        if (EnhancementManager.getLevel(item) < 10) return
+
+        // 플레이어 발사 자체는 그대로 두고(취소 불가/취소할 필요 없음),
+        // 추가로 분산 삼지창 버스트만 발생시킨다.
+        fireTridentBurst(shooter)
+    }
+
+    // 분산 삼지창(버스트)이 발사자 본인에게 데미지를 주는 것을 방지한다.
+// 스폰 직후 히트박스가 겹치거나(특히 급류 발사 시), spread로 인해
+// 방향이 살짝 틀어져 자기 자신에게 맞는 경우를 원천 차단.
+    @EventHandler
+    fun onTridentBurstSelfHit(event: EntityDamageByEntityEvent) {
+        val trident = event.damager as? Trident ?: return
+        if (!trident.persistentDataContainer.has(tridentBurstKey, PersistentDataType.BYTE)) return
+        if (event.entity == trident.shooter) {
+            event.isCancelled = true
+        }
+    }
+
+    private fun fireTridentBurst(shooter: Player) {
         val settings = RandomEnchantPlugin.instance.configManager.settings
+        val cooldownMs = (settings.getDouble("enhancement-abilities.trident.cooldown-seconds", 1.0) * 1000).toLong()
+        val now = System.currentTimeMillis()
+        val last = tridentCooldown[shooter.uniqueId] ?: 0L
+
+        if (now - last < cooldownMs) {
+            val remain = (cooldownMs - (now - last)) / 1000.0
+            shooter.sendActionBar("§c삼지창 스킬 쿨다운: %.1f초".format(remain))
+            return
+        }
+
+        tridentCooldown[shooter.uniqueId] = now
+
         val burstCount = settings.getInt("enhancement-abilities.trident.burst-count", 15)
         val spread = settings.getDouble("enhancement-abilities.trident.spread", 0.12)
         val speed = settings.getDouble("enhancement-abilities.trident.speed", 2.5)
+        val damageMultiplier = settings.getDouble("enhancement-abilities.trident.damage-multiplier", 1.5)
+        val despawnTicks = settings.getInt("enhancement-abilities.trident.despawn-seconds", 3) * 20L
 
         val baseDirection = shooter.location.direction.normalize()
         val random = ThreadLocalRandom.current()
         val world = shooter.world
-        val launchLoc = shooter.eyeLocation
 
-        repeat(burstCount) {
-            val offset = Vector(
-                random.nextDouble(-spread, spread),
-                random.nextDouble(-spread, spread),
-                random.nextDouble(-spread, spread)
-            )
-            val direction = baseDirection.clone().add(offset).normalize()
-            
-            val clone = shooter.launchProjectile(Trident::class.java)
-            clone.velocity = direction.multiply(speed)
-            clone.pickupStatus = AbstractArrow.PickupStatus.DISALLOWED
-            clone.persistentDataContainer.set(tridentBurstKey, PersistentDataType.BYTE, 1)
+        isSpawningTridentBurst = true
+        try {
+            repeat(burstCount) {
+                val offset = Vector(
+                    random.nextDouble(-spread, spread),
+                    random.nextDouble(-spread, spread),
+                    random.nextDouble(-spread, spread)
+                )
+                val direction = baseDirection.clone().add(offset).normalize()
 
-            // 3초 후 자동 삭제
-            val despawnTicks = settings.getInt("enhancement-abilities.trident.despawn-seconds", 3) * 20L
-            Bukkit.getScheduler().runTaskLater(RandomEnchantPlugin.instance, Runnable {
-                if (!clone.isDead) clone.remove()
-            }, despawnTicks)
+                val clone = shooter.launchProjectile(Trident::class.java)
+                clone.velocity = direction.multiply(speed)
+                clone.damage = clone.damage * damageMultiplier
+                clone.pickupStatus = AbstractArrow.PickupStatus.DISALLOWED
+                clone.persistentDataContainer.set(tridentBurstKey, PersistentDataType.BYTE, 1)
+
+                // 맞든 안 맞든 일정 시간 후 무조건 자동 삭제
+                Bukkit.getScheduler().runTaskLater(RandomEnchantPlugin.instance, Runnable {
+                    if (!clone.isDead) clone.remove()
+                }, despawnTicks)
+            }
+        } finally {
+            isSpawningTridentBurst = false
         }
 
         world.playSound(shooter.location, Sound.ITEM_TRIDENT_THROW, 1.0f, 1.0f)

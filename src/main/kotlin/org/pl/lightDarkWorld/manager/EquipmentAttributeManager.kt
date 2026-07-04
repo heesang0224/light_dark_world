@@ -13,6 +13,12 @@ import org.pl.lightDarkWorld.RandomEnchantPlugin
  * 레벨이 바뀔 때마다 이 플러그인이 이전에 추가했던 보너스를 모두 제거한 뒤
  * 새 레벨 기준으로 다시 계산해서 적용한다.
  *
+ * 주의: 아이템에 커스텀 AttributeModifier를 하나라도 추가하면 마인크래프트는
+ * 그 아이템의 바닐라 기본 어트리뷰트 전체(다른 속성까지 포함)를 더 이상 자동
+ * 적용하지 않는다. 그래서 검/철퇴처럼 ATTACK_DAMAGE를 커스텀으로 건드리는
+ * 무기는 원래 갖고 있던 ATTACK_SPEED 감소 수정치도 함께 명시적으로 다시
+ * 추가해줘야 한다 (안 그러면 공격속도가 기본값 4.0으로 리셋되어버림).
+ *
  * 활/도끼는 바닐라 어트리뷰트로 표현이 안 되는 효과(원거리 데미지%, 크리티컬 데미지%)라
  * 여기서는 다루지 않고 EnhancementAbilityListener에서 데미지 보정으로 처리한다.
  * 삼지창/낚싯대는 10강 액티브 스킬만 있고 패시브 스탯은 없다.
@@ -63,7 +69,9 @@ object EquipmentAttributeManager {
     private val BOOTS_HEALTH_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_boots_health")
     private val BOOTS_SPEED_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_boots_speed")
     private val SWORD_DAMAGE_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_sword_damage")
+    private val SWORD_ATTACK_SPEED_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_sword_attack_speed")
     private val MACE_DAMAGE_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_mace_damage")
+    private val MACE_ATTACK_SPEED_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_mace_attack_speed")
 
     /**
      * 강화 레벨에 맞춰 어트리뷰트를 다시 계산해 적용한다.
@@ -97,7 +105,7 @@ object EquipmentAttributeManager {
             EquipmentKind.CHESTPLATE -> {
                 meta.removeAttributeModifier(Attribute.ARMOR)
                 meta.removeAttributeModifier(Attribute.MAX_HEALTH)
-                val armor = settings.getDouble("enhancement-attributes.chestplate.armor.$level", level * 0.5)
+                val armor = settings.getDouble("enhancement-attributes.chestplate.armor.$level", level * 1.0)
                 val health = settings.getDouble("enhancement-attributes.chestplate.health.$level", level * 1.0)
                 meta.addAttributeModifier(
                     Attribute.ARMOR,
@@ -141,19 +149,32 @@ object EquipmentAttributeManager {
 
             EquipmentKind.SWORD -> {
                 meta.removeAttributeModifier(Attribute.ATTACK_DAMAGE)
-                val damage = settings.getDouble("enhancement-attributes.sword.damage.$level", level * 0.5)
+                meta.removeAttributeModifier(Attribute.ATTACK_SPEED)
+                val damage = settings.getDouble("enhancement-attributes.sword.damage.$level", level * 1.0)
                 meta.addAttributeModifier(
                     Attribute.ATTACK_DAMAGE,
                     AttributeModifier(SWORD_DAMAGE_KEY, damage, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND)
+                )
+                // 커스텀 ATTACK_DAMAGE를 추가하면 바닐라 기본 공격속도 수정치(-2.4, 결과 1.6)가
+                // 함께 사라지므로 반드시 다시 명시해줘야 한다.
+                meta.addAttributeModifier(
+                    Attribute.ATTACK_SPEED,
+                    AttributeModifier(SWORD_ATTACK_SPEED_KEY, -2.4, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND)
                 )
             }
 
             EquipmentKind.MACE -> {
                 meta.removeAttributeModifier(Attribute.ATTACK_DAMAGE)
+                meta.removeAttributeModifier(Attribute.ATTACK_SPEED)
                 val damage = settings.getDouble("enhancement-attributes.mace.damage.$level", level * 0.5)
                 meta.addAttributeModifier(
                     Attribute.ATTACK_DAMAGE,
                     AttributeModifier(MACE_DAMAGE_KEY, damage, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND)
+                )
+                // 철퇴 바닐라 기본 공격속도: 0.6 (기본값 4.0에서 -3.4)
+                meta.addAttributeModifier(
+                    Attribute.ATTACK_SPEED,
+                    AttributeModifier(MACE_ATTACK_SPEED_KEY, -3.4, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND)
                 )
             }
 
