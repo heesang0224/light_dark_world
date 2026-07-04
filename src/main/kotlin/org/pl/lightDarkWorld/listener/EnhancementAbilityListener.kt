@@ -1,9 +1,12 @@
 package org.pl.lightDarkWorld.listener
 
+import com.destroystokyo.paper.event.player.PlayerArmorChangeEvent
+import com.destroystokyo.paper.event.player.PlayerJumpEvent
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.Particle
+import org.bukkit.Sound
 import org.bukkit.entity.Arrow
 import org.bukkit.entity.Player
 import org.bukkit.entity.Trident
@@ -17,6 +20,7 @@ import org.bukkit.event.entity.ProjectileHitEvent
 import org.bukkit.event.entity.ProjectileLaunchEvent
 import org.bukkit.event.player.PlayerFishEvent
 import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.event.player.PlayerToggleFlightEvent
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.potion.PotionEffect
 import org.bukkit.potion.PotionEffectType
@@ -37,6 +41,7 @@ import java.util.concurrent.ThreadLocalRandom
 class EnhancementAbilityListener : Listener {
 
     private val maceCooldown = mutableMapOf<UUID, Long>()
+    private val dashCooldown = mutableMapOf<UUID, Long>()
 
     private val bowLevelKey get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_bow_level")
     private val tridentBurstKey get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_trident_burst")
@@ -105,7 +110,7 @@ class EnhancementAbilityListener : Listener {
     }
 
     // =========================
-    // 삼지창 10강: 20갈래 분산 발사, 바닥에 맞으면 3초 후 삭제
+    // 삼지창 10강: 분산 발사 (설정 기반)
     // =========================
     @EventHandler
     fun onTridentLaunch(event: ProjectileLaunchEvent) {
@@ -122,13 +127,14 @@ class EnhancementAbilityListener : Listener {
         event.isCancelled = true
 
         val settings = RandomEnchantPlugin.instance.configManager.settings
-        val burstCount = settings.getInt("enhancement-abilities.trident.burst-count", 20)
+        val burstCount = settings.getInt("enhancement-abilities.trident.burst-count", 15)
         val spread = settings.getDouble("enhancement-abilities.trident.spread", 0.12)
         val speed = settings.getDouble("enhancement-abilities.trident.speed", 2.5)
 
         val baseDirection = shooter.location.direction.normalize()
         val random = ThreadLocalRandom.current()
         val world = shooter.world
+        val launchLoc = shooter.eyeLocation
 
         repeat(burstCount) {
             val offset = Vector(
@@ -142,23 +148,15 @@ class EnhancementAbilityListener : Listener {
             clone.velocity = direction.multiply(speed)
             clone.pickupStatus = AbstractArrow.PickupStatus.DISALLOWED
             clone.persistentDataContainer.set(tridentBurstKey, PersistentDataType.BYTE, 1)
+
+            // 3초 후 자동 삭제
+            val despawnTicks = settings.getInt("enhancement-abilities.trident.despawn-seconds", 3) * 20L
+            Bukkit.getScheduler().runTaskLater(RandomEnchantPlugin.instance, Runnable {
+                if (!clone.isDead) clone.remove()
+            }, despawnTicks)
         }
 
         world.playSound(shooter.location, Sound.ITEM_TRIDENT_THROW, 1.0f, 1.0f)
-    }
-
-    @EventHandler
-    fun onTridentHit(event: ProjectileHitEvent) {
-        val trident = event.entity as? Trident ?: return
-        if (!trident.persistentDataContainer.has(tridentBurstKey, PersistentDataType.BYTE)) return
-        if (event.hitBlock == null) return // 바닥(블록)에 맞았을 때만
-
-        val settings = RandomEnchantPlugin.instance.configManager.settings
-        val despawnTicks = settings.getInt("enhancement-abilities.trident.despawn-seconds", 3) * 20L
-
-        Bukkit.getScheduler().runTaskLater(RandomEnchantPlugin.instance, Runnable {
-            if (!trident.isDead) trident.remove()
-        }, despawnTicks)
     }
 
     // =========================
@@ -180,32 +178,69 @@ class EnhancementAbilityListener : Listener {
     }
 
     // =========================
-    // 부츠 10강: 우클릭 시 대시 (쿨타임 없음)
+    // 부츠 10강: 스페이스바 두 번 눌러서 대시
     // =========================
     @EventHandler
-    fun onBootsDash(event: PlayerInteractEvent) {
-        if (event.action != Action.RIGHT_CLICK_AIR && event.action != Action.RIGHT_CLICK_BLOCK) return
-
-        val item = event.item ?: return
-        val boots = event.player.inventory.boots ?: return
-        if (boots.type !in setOf(
-            Material.LEATHER_BOOTS, Material.CHAINMAIL_BOOTS, Material.IRON_BOOTS,
-            Material.GOLDEN_BOOTS, Material.DIAMOND_BOOTS, Material.NETHERITE_BOOTS
-        )) return
-        if (EnhancementManager.getLevel(boots) < 10) return
+    fun onBootsDash(event: PlayerToggleFlightEvent) {
+        if (!event.isFlying) return
 
         val player = event.player
-        val direction = player.location.direction.normalize()
+        val boots = player.inventory.boots ?: return
+        if (boots.type !in setOf(
+                Material.LEATHER_BOOTS, Material.CHAINMAIL_BOOTS, Material.IRON_BOOTS,
+                Material.GOLDEN_BOOTS, Material.DIAMOND_BOOTS, Material.NETHERITE_BOOTS
+            )) return
+        if (EnhancementManager.getLevel(boots) < 10) return
+
+        val now = System.currentTimeMillis()
+        val last = dashCooldown[player.uniqueId] ?: 0L
         val settings = RandomEnchantPlugin.instance.configManager.settings
-        val speedMultiplier = settings.getDouble("enhancement-abilities.boots.speed-multiplier", 1.6)
-        val yBoost = settings.getDouble("enhancement-abilities.boots.y-boost", 0.5)
+        val cooldownSeconds = settings.getDouble("enhancement-abilities.boots.cooldown-seconds", 1.0)
+        val cooldownMs = (cooldownSeconds * 1000).toLong()
+
+        if (now - last < cooldownMs) {
+            event.isCancelled = true
+            return
+        }
+
+        dashCooldown[player.uniqueId] = now
+
+        // 비행 모드 진입 취소
+        event.isCancelled = true
+
+        val direction = player.location.direction.normalize()
+        val speedMultiplier = settings.getDouble("enhancement-abilities.boots.speed-multiplier", 1.0)
+        val yBoost = settings.getDouble("enhancement-abilities.boots.y-boost", 0.3)
 
         val dash = Vector(direction.x, yBoost, direction.z).multiply(speedMultiplier)
         player.velocity = dash
 
+        // 낙하 데미지 활성화 (양수로 설정하면 낙뎀 계산)
+        player.fallDistance = 0.1f
+
         player.world.spawnParticle(Particle.CLOUD, player.location.add(0.0, 1.0, 0.0), 20, 0.25, 0.25, 0.25, 0.02)
         player.world.spawnParticle(Particle.SWEEP_ATTACK, player.location.add(0.0, 1.0, 0.0), 6, 0.2, 0.2, 0.2, 0.0)
         player.world.playSound(player.location, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.0f, 1.2f)
+    }
+    @EventHandler
+    fun onArmorChange(event: PlayerArmorChangeEvent) {
+        if (event.slotType != PlayerArmorChangeEvent.SlotType.FEET) return
+
+        val player = event.player
+        val newBoots = event.newItem
+
+        val is10Boots = newBoots.type in setOf(
+            Material.LEATHER_BOOTS, Material.CHAINMAIL_BOOTS, Material.IRON_BOOTS,
+            Material.GOLDEN_BOOTS, Material.DIAMOND_BOOTS, Material.NETHERITE_BOOTS
+        ) && EnhancementManager.getLevel(newBoots) >= 10
+
+        if (is10Boots) {
+            player.allowFlight = true
+        } else if (player.gameMode != org.bukkit.GameMode.CREATIVE &&
+            player.gameMode != org.bukkit.GameMode.SPECTATOR) {
+            // 다른 플러그인(엘리트라 등)이 켜둔 게 아니라면 원상 복구
+            player.allowFlight = false
+        }
     }
 
     private fun stunPlayer(target: Player, durationTicks: Long) {

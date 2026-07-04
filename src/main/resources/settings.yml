@@ -112,6 +112,8 @@ enhancement-messages:
 enhancement-attributes:
   helmet:
     armor: { 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0, 5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0, 9: 4.5, 10: 5.0 }
+    health: { 1: 1.0, 2: 2.0, 3: 3.0, 4: 4.0, 5: 5.0, 6: 6.0, 7: 7.0, 8: 8.0, 9: 9.0, 10: 10.0 }
+
 
   chestplate:
     armor: { 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0, 5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0, 9: 4.5, 10: 5.0 }
@@ -119,6 +121,7 @@ enhancement-attributes:
 
   leggings:
     armor: { 1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0, 5: 2.5, 6: 3.0, 7: 3.5, 8: 4.0, 9: 4.5, 10: 5.0 }
+    health: { 1: 1.0, 2: 2.0, 3: 3.0, 4: 4.0, 5: 5.0, 6: 6.0, 7: 7.0, 8: 8.0, 9: 9.0, 10: 10.0 }
 
   boots:
     health: { 1: 1.0, 2: 2.0, 3: 3.0, 4: 4.0, 5: 5.0, 6: 6.0, 7: 7.0, 8: 8.0, 9: 9.0, 10: 10.0 }
@@ -143,9 +146,14 @@ enhancement-attributes:
 # ==========================
 enhancement-abilities:
   mace:
-    cooldown-seconds: 5
+    cooldown-seconds: 0
   trident:
     burst-count: 20
     despawn-seconds: 3
   fishing-rod:
     stun-seconds: 3
+  boots:
+    cooldown-seconds: 1
+    speed-multiplier: 1.0
+    y-boost: 0.3
+    fall-damage-enabled: true

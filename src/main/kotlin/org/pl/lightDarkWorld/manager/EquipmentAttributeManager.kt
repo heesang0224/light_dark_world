@@ -54,10 +54,16 @@ object EquipmentAttributeManager {
         else -> EquipmentKind.NONE
     }
 
-    private val ARMOR_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_armor")
-    private val HEALTH_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_health")
-    private val SPEED_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_speed")
-    private val DAMAGE_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_damage")
+    private val HELMET_ARMOR_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_helmet_armor")
+    private val HELMET_HEALTH_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_helmet_health")
+    private val CHESTPLATE_ARMOR_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_chestplate_armor")
+    private val CHESTPLATE_HEALTH_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_chestplate_health")
+    private val LEGGINGS_ARMOR_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_leggings_armor")
+    private val LEGGINGS_HEALTH_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_leggings_health")
+    private val BOOTS_HEALTH_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_boots_health")
+    private val BOOTS_SPEED_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_boots_speed")
+    private val SWORD_DAMAGE_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_sword_damage")
+    private val MACE_DAMAGE_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_mace_damage")
 
     /**
      * 강화 레벨에 맞춰 어트리뷰트를 다시 계산해 적용한다.
@@ -76,14 +82,14 @@ object EquipmentAttributeManager {
                 meta.removeAttributeModifier(Attribute.ARMOR)
                 meta.removeAttributeModifier(Attribute.MAX_HEALTH)
                 val armor = settings.getDouble("enhancement-attributes.helmet.armor.$level", level * 0.5)
-                val health = settings.getDouble("enhancement-attributes.health.armor.$level", level * 1.0)
+                val health = settings.getDouble("enhancement-attributes.helmet.health.$level", level * 1.0)
                 meta.addAttributeModifier(
                     Attribute.ARMOR,
-                    AttributeModifier(ARMOR_KEY, armor, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HEAD)
+                    AttributeModifier(HELMET_ARMOR_KEY, armor, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HEAD)
                 )
                 meta.addAttributeModifier(
                     Attribute.MAX_HEALTH,
-                    AttributeModifier(HEALTH_KEY,health, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HEAD)
+                    AttributeModifier(HELMET_HEALTH_KEY, health, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HEAD)
                 )
 
             }
@@ -95,11 +101,11 @@ object EquipmentAttributeManager {
                 val health = settings.getDouble("enhancement-attributes.chestplate.health.$level", level * 1.0)
                 meta.addAttributeModifier(
                     Attribute.ARMOR,
-                    AttributeModifier(ARMOR_KEY, armor, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.CHEST)
+                    AttributeModifier(CHESTPLATE_ARMOR_KEY, armor, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.CHEST)
                 )
                 meta.addAttributeModifier(
                     Attribute.MAX_HEALTH,
-                    AttributeModifier(HEALTH_KEY, health, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.CHEST)
+                    AttributeModifier(CHESTPLATE_HEALTH_KEY, health, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.CHEST)
                 )
             }
 
@@ -107,14 +113,14 @@ object EquipmentAttributeManager {
                 meta.removeAttributeModifier(Attribute.ARMOR)
                 meta.removeAttributeModifier(Attribute.MAX_HEALTH)
                 val armor = settings.getDouble("enhancement-attributes.leggings.armor.$level", level * 0.5)
-                val health = settings.getDouble("enhancement-attributes.chestplate.health.$level", level * 1.0)
+                val health = settings.getDouble("enhancement-attributes.leggings.health.$level", level * 1.0)
                 meta.addAttributeModifier(
                     Attribute.ARMOR,
-                    AttributeModifier(ARMOR_KEY, armor, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.LEGS)
+                    AttributeModifier(LEGGINGS_ARMOR_KEY, armor, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.LEGS)
                 )
                 meta.addAttributeModifier(
                     Attribute.MAX_HEALTH,
-                    AttributeModifier(HEALTH_KEY, health, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.LEGS)
+                    AttributeModifier(LEGGINGS_HEALTH_KEY, health, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.LEGS)
                 )
             }
 
@@ -125,19 +131,20 @@ object EquipmentAttributeManager {
                 val speed = settings.getDouble("enhancement-attributes.boots.speed.$level", level * 0.05)
                 meta.addAttributeModifier(
                     Attribute.MAX_HEALTH,
-                    AttributeModifier(HEALTH_KEY, health, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.FEET)
+                    AttributeModifier(BOOTS_HEALTH_KEY, health, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.FEET)
                 )
                 meta.addAttributeModifier(
                     Attribute.MOVEMENT_SPEED,
-                    AttributeModifier(SPEED_KEY, speed, AttributeModifier.Operation.ADD_SCALAR, EquipmentSlotGroup.FEET)
+                    AttributeModifier(BOOTS_SPEED_KEY, speed, AttributeModifier.Operation.ADD_SCALAR, EquipmentSlotGroup.FEET)
                 )
             }
 
             EquipmentKind.SWORD -> {
+                meta.removeAttributeModifier(Attribute.ATTACK_DAMAGE)
                 val damage = settings.getDouble("enhancement-attributes.sword.damage.$level", level * 0.5)
                 meta.addAttributeModifier(
                     Attribute.ATTACK_DAMAGE,
-                    AttributeModifier(DAMAGE_KEY, damage, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND)
+                    AttributeModifier(SWORD_DAMAGE_KEY, damage, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND)
                 )
             }
 
@@ -146,7 +153,7 @@ object EquipmentAttributeManager {
                 val damage = settings.getDouble("enhancement-attributes.mace.damage.$level", level * 0.5)
                 meta.addAttributeModifier(
                     Attribute.ATTACK_DAMAGE,
-                    AttributeModifier(DAMAGE_KEY, damage, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND)
+                    AttributeModifier(MACE_DAMAGE_KEY, damage, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND)
                 )
             }
 
