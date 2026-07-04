@@ -5,3 +5,9 @@ main: org.pl.lightDarkWorld.RandomEnchantPlugin
 api-version: '26.1.2'
 load: POSTWORLD
 
+commands:
+  enhance:
+    description: "손에 든 아이템을 지정된 강화 레벨로 설정합니다"
+    usage: "/enhance <레벨(1-10)>"
+    aliases: [enh]
+    permission: lightdarkworld.enhance

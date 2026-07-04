@@ -7,7 +7,6 @@ import org.bukkit.persistence.PersistentDataType
 import org.pl.lightDarkWorld.RandomEnchantPlugin
 import org.pl.lightDarkWorld.util.ItemUtil
 import kotlin.random.Random
-
 /**
  * 모루 강화 결과.
  * 강화 레벨, 소모 XP 등 메시지 출력에 필요한 정보를 함께 담는다.
@@ -44,6 +43,25 @@ object EnhancementManager {
     private fun setLevel(item: ItemStack, level: Int) {
         val meta = item.itemMeta ?: return
         meta.persistentDataContainer.set(LEVEL_KEY, PersistentDataType.INTEGER, level)
+        item.itemMeta = meta
+    }
+
+    /**
+     * 명령어용으로 공개된 setLevel. 강화 레벨과 로어, 어트리뷰트를 모두 설정한다.
+     */
+    fun setEnhancementLevel(item: ItemStack, level: Int) {
+        setLevel(item, level)
+        ItemUtil.setEnhancementLore(item, level)
+        EquipmentAttributeManager.apply(item, level)
+    }
+
+    /**
+     * 아이템의 강화를 제거한다 (레벨 0).
+     */
+    fun removeEnhancement(item: ItemStack) {
+        setLevel(item, 0)
+        val meta = item.itemMeta ?: return
+        meta.lore(emptyList())
         item.itemMeta = meta
     }
 
@@ -90,6 +108,7 @@ object EnhancementManager {
         if (successRoll <= successRate) {
             setLevel(item, nextLevel)
             ItemUtil.setEnhancementLore(item, nextLevel)
+            EquipmentAttributeManager.apply(item, nextLevel)
             return EnhancementResult.Success(nextLevel, cost)
         }
 

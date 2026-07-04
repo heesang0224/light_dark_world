@@ -6,6 +6,8 @@ import org.pl.lightDarkWorld.listener.EnchantTableListener
 import org.pl.lightDarkWorld.listener.InventoryListener
 import org.pl.lightDarkWorld.listener.AnvilListener
 import org.pl.lightDarkWorld.listener.EnhancementAbilityListener
+import org.pl.lightDarkWorld.listener.DamageCheckListener
+import org.pl.lightDarkWorld.command.EnhanceCommand
 
 class RandomEnchantPlugin : JavaPlugin() {
 
@@ -23,11 +25,15 @@ class RandomEnchantPlugin : JavaPlugin() {
         server.pluginManager.registerEvents(InventoryListener(), this)
         server.pluginManager.registerEvents(AnvilListener(), this)
         server.pluginManager.registerEvents(EnhancementAbilityListener(), this)
-
+        server.pluginManager.registerEvents(DamageCheckListener(), this)
 
         configManager = ConfigManager(this)
         configManager.load()
-        println("********************")
+
+        // 명령어 등록
+        getCommand("enhance")?.setExecutor(EnhanceCommand())
+
+        logger.info("LightDarkWorld Plugin enabled")
     }
 
 

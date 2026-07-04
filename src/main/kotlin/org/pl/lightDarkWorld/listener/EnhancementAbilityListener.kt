@@ -3,7 +3,7 @@ package org.pl.lightDarkWorld.listener
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
-import org.bukkit.Sound
+import org.bukkit.Particle
 import org.bukkit.entity.Arrow
 import org.bukkit.entity.Player
 import org.bukkit.entity.Trident
@@ -28,6 +28,7 @@ import org.pl.lightDarkWorld.manager.EquipmentAttributeManager
 import java.util.UUID
 import org.bukkit.entity.AbstractArrow
 import org.bukkit.entity.LivingEntity
+import java.util.concurrent.ThreadLocalRandom
 
 /**
  * 10강 전용 액티브 스킬과, 바닐라 어트리뷰트로 표현이 안 되는
@@ -41,47 +42,12 @@ class EnhancementAbilityListener : Listener {
     private val tridentBurstKey get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_trident_burst")
 
     // =========================
-    // 검 10강: 피격 무적시간 무시 / 도끼: 크리티컬 데미지% 보정
+    // 도끼: 크리티컬 데미지% 보정
     // =========================
-    @EventHandler
-    fun onMeleeHit(event: EntityDamageByEntityEvent) {
-        val player = event.damager as? Player ?: return
-        val item = player.inventory.itemInMainHand
-        val kind = EquipmentAttributeManager.kindOf(item.type)
 
-        when (kind) {
-            EquipmentAttributeManager.EquipmentKind.SWORD -> {
-                if (EnhancementManager.getLevel(item) >= 10) {
-                    val target = event.entity as? LivingEntity
-                    if (target != null) {
-                        Bukkit.getScheduler().runTask(RandomEnchantPlugin.instance, Runnable {
-                            if (!target.isDead) target.noDamageTicks = 0
-                        })
-                    }
-                }
-            }
 
-            EquipmentAttributeManager.EquipmentKind.AXE -> {
-                val level = EnhancementManager.getLevel(item)
-                if (level > 0 && isCriticalHit(player)) {
-                    val settings = RandomEnchantPlugin.instance.configManager.settings
-                    val percent = settings.getDouble("enhancement-attributes.axe.critical_damage_percent.$level", level * 5.0)
-                    event.damage *= (1 + percent / 100.0)
-                }
-            }
 
-            else -> {}
-        }
-    }
 
-    /** 바닐라 크리티컬 판정 휴리스틱: 낙하 중 + 비행 중 아님 + 물 안에 없음 */
-    private fun isCriticalHit(player: Player): Boolean {
-        return player.fallDistance > 0f &&
-                !player.isOnGround &&
-                !player.isInWater &&
-                !player.isGliding &&
-                player.velocity.y < 0
-    }
 
     // =========================
     // 활: 원거리 데미지% 보정 (모든 강화 레벨 적용)
@@ -100,7 +66,7 @@ class EnhancementAbilityListener : Listener {
         val arrow = event.damager as? Arrow ?: return
         val level = arrow.persistentDataContainer.get(bowLevelKey, PersistentDataType.INTEGER) ?: return
         val settings = RandomEnchantPlugin.instance.configManager.settings
-        val percent = settings.getDouble("enhancement-attributes.bow.damage_percent.$level", level * 5.0)
+        val percent = settings.getDouble("enhancement-attributes.bow.damage_percent.$level", level * 1.0)
         event.damage *= (1 + percent / 100.0)
     }
 
@@ -117,14 +83,14 @@ class EnhancementAbilityListener : Listener {
 
         val player = event.player
         val settings = RandomEnchantPlugin.instance.configManager.settings
-        val cooldownMs = settings.getLong("enhancement-abilities.mace.cooldown-seconds", 5) * 1000L
+        val cooldownMs = settings.getLong("enhancement-abilities.mace.cooldown-seconds", 0) * 1000L
 
         val now = System.currentTimeMillis()
         val last = maceCooldown[player.uniqueId] ?: 0L
 
         if (now - last < cooldownMs) {
             val remain = (cooldownMs - (now - last)) / 1000.0
-            player.sendMessage("§c철퇴 스킬 쿨다운: %.1f초".format(remain))
+            player.sendActionBar("§c철퇴 스킬 쿨다운: %.1f초".format(remain))
             return
         }
 
@@ -153,28 +119,32 @@ class EnhancementAbilityListener : Listener {
         if (item.type != Material.TRIDENT) return
         if (EnhancementManager.getLevel(item) < 10) return
 
+        event.isCancelled = true
+
         val settings = RandomEnchantPlugin.instance.configManager.settings
         val burstCount = settings.getInt("enhancement-abilities.trident.burst-count", 20)
+        val spread = settings.getDouble("enhancement-abilities.trident.spread", 0.12)
+        val speed = settings.getDouble("enhancement-abilities.trident.speed", 2.5)
 
-        val baseVelocity = trident.velocity
-        val world = trident.world
-        val origin = trident.location
+        val baseDirection = shooter.location.direction.normalize()
+        val random = ThreadLocalRandom.current()
+        val world = shooter.world
 
-        trident.persistentDataContainer.set(tridentBurstKey, PersistentDataType.BYTE, 1)
-
-        // 원본 1개 + 나머지를 부채꼴로 살짝씩 회전시켜 분산
-        for (i in 1 until burstCount) {
-            val angle = Math.toRadians((i * (360.0 / burstCount)))
-            val spread = baseVelocity.clone().rotateAroundY(angle * 0.3)
-
-            val clone = world.spawn(origin, Trident::class.java)
-            clone.shooter = shooter
-            clone.velocity = spread
+        repeat(burstCount) {
+            val offset = Vector(
+                random.nextDouble(-spread, spread),
+                random.nextDouble(-spread, spread),
+                random.nextDouble(-spread, spread)
+            )
+            val direction = baseDirection.clone().add(offset).normalize()
+            
+            val clone = shooter.launchProjectile(Trident::class.java)
+            clone.velocity = direction.multiply(speed)
             clone.pickupStatus = AbstractArrow.PickupStatus.DISALLOWED
             clone.persistentDataContainer.set(tridentBurstKey, PersistentDataType.BYTE, 1)
         }
 
-        world.playSound(origin, Sound.ITEM_TRIDENT_THROW, 1.0f, 1.0f)
+        world.playSound(shooter.location, Sound.ITEM_TRIDENT_THROW, 1.0f, 1.0f)
     }
 
     @EventHandler
@@ -207,6 +177,35 @@ class EnhancementAbilityListener : Listener {
         val stunSeconds = settings.getInt("enhancement-abilities.fishing-rod.stun-seconds", 3)
 
         stunPlayer(caught, stunSeconds * 20L)
+    }
+
+    // =========================
+    // 부츠 10강: 우클릭 시 대시 (쿨타임 없음)
+    // =========================
+    @EventHandler
+    fun onBootsDash(event: PlayerInteractEvent) {
+        if (event.action != Action.RIGHT_CLICK_AIR && event.action != Action.RIGHT_CLICK_BLOCK) return
+
+        val item = event.item ?: return
+        val boots = event.player.inventory.boots ?: return
+        if (boots.type !in setOf(
+            Material.LEATHER_BOOTS, Material.CHAINMAIL_BOOTS, Material.IRON_BOOTS,
+            Material.GOLDEN_BOOTS, Material.DIAMOND_BOOTS, Material.NETHERITE_BOOTS
+        )) return
+        if (EnhancementManager.getLevel(boots) < 10) return
+
+        val player = event.player
+        val direction = player.location.direction.normalize()
+        val settings = RandomEnchantPlugin.instance.configManager.settings
+        val speedMultiplier = settings.getDouble("enhancement-abilities.boots.speed-multiplier", 1.6)
+        val yBoost = settings.getDouble("enhancement-abilities.boots.y-boost", 0.5)
+
+        val dash = Vector(direction.x, yBoost, direction.z).multiply(speedMultiplier)
+        player.velocity = dash
+
+        player.world.spawnParticle(Particle.CLOUD, player.location.add(0.0, 1.0, 0.0), 20, 0.25, 0.25, 0.25, 0.02)
+        player.world.spawnParticle(Particle.SWEEP_ATTACK, player.location.add(0.0, 1.0, 0.0), 6, 0.2, 0.2, 0.2, 0.0)
+        player.world.playSound(player.location, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.0f, 1.2f)
     }
 
     private fun stunPlayer(target: Player, durationTicks: Long) {
