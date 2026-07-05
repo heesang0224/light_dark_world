@@ -21,6 +21,7 @@ import org.bukkit.event.entity.EntityShootBowEvent
 import org.bukkit.event.entity.ProjectileLaunchEvent
 import org.bukkit.event.player.PlayerFishEvent
 import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerToggleFlightEvent
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.potion.PotionEffect
@@ -55,7 +56,7 @@ class EnhancementAbilityListener : Listener {
     private val bowLevelKey get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_bow_level")
     private val tridentBurstKey get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_trident_burst")
 
-// =========================
+    // =========================
 // 도끼: 크리티컬 데미지% 보정
 // =========================
     @EventHandler
@@ -302,14 +303,22 @@ class EnhancementAbilityListener : Listener {
     @EventHandler
     fun onArmorChange(event: PlayerArmorChangeEvent) {
         if (event.slotType != PlayerArmorChangeEvent.SlotType.FEET) return
+        syncBootsFlight(event.player, event.newItem)
+    }
 
-        val player = event.player
-        val newBoots = event.newItem
+    // 서버 재시작/재접속처럼 10강 부츠를 이미 신은 채로 로그인하는 경우
+    // PlayerArmorChangeEvent가 발생하지 않아 allowFlight가 켜지지 않는 문제를 보완한다.
+    @EventHandler
+    fun onPlayerJoin(event: PlayerJoinEvent) {
+        val boots = event.player.inventory.boots ?: return
+        syncBootsFlight(event.player, boots)
+    }
 
-        val is10Boots = newBoots.type in setOf(
+    private fun syncBootsFlight(player: Player, boots: org.bukkit.inventory.ItemStack) {
+        val is10Boots = boots.type in setOf(
             Material.LEATHER_BOOTS, Material.CHAINMAIL_BOOTS, Material.IRON_BOOTS,
             Material.GOLDEN_BOOTS, Material.DIAMOND_BOOTS, Material.NETHERITE_BOOTS
-        ) && EnhancementManager.getLevel(newBoots) >= 10
+        ) && EnhancementManager.getLevel(boots) >= 10
 
         if (is10Boots) {
             player.allowFlight = true

@@ -147,7 +147,7 @@ object EquipmentAttributeManager {
                 meta.removeAttributeModifier(Attribute.MAX_HEALTH)
                 meta.removeAttributeModifier(Attribute.KNOCKBACK_RESISTANCE)
                 meta.removeAttributeModifier(Attribute.ARMOR_TOUGHNESS)
-                val armor = settings.getDouble("enhancement-attributes.chestplate.armor.$level", level * 0.5)
+                val armor = settings.getDouble("enhancement-attributes.chestplate.armor.$level", level * 1.0)
                 val health = settings.getDouble("enhancement-attributes.chestplate.health.$level", level * 1.0)
                 val toughnessBonus = settings.getDouble("enhancement-attributes.chestplate.toughness.$level", level * 0.1)
                 meta.addAttributeModifier(
