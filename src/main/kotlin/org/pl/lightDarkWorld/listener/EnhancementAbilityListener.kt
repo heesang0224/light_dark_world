@@ -116,7 +116,7 @@ class EnhancementAbilityListener : Listener {
         val cooldownMs = settings.getLong("enhancement-abilities.mace.cooldown-seconds", 0) * 1000L
 
         val now = System.currentTimeMillis()
-        val last = maceCooldown[player.uniqueId] ?: 0L
+        val last = maceCooldown[player.uniqueId] ?: 1L
 
         if (now - last < cooldownMs) {
             val remain = (cooldownMs - (now - last)) / 1000.0
@@ -302,7 +302,8 @@ class EnhancementAbilityListener : Listener {
     }
     @EventHandler
     fun onArmorChange(event: PlayerArmorChangeEvent) {
-        if (event.slotType != PlayerArmorChangeEvent.SlotType.FEET) return
+
+        if (event.slot != org.bukkit.inventory.EquipmentSlot.FEET) return
         syncBootsFlight(event.player, event.newItem)
     }
 

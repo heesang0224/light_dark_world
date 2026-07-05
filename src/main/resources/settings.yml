@@ -154,7 +154,7 @@ enhancement-attributes:
 # ==========================
 enhancement-abilities:
   mace:
-    cooldown-seconds: 0
+    cooldown-seconds: 1
   trident:
     burst-count: 15
     despawn-seconds: 3
