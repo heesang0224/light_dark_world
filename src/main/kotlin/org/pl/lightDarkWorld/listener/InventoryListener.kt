@@ -73,7 +73,7 @@ class InventoryListener : Listener {
                                 if (RandomEnchantManager.enchant(item)) {
                                     holder.item = item
                                     event.inventory.setItem(EnchantGUI.ITEM_SLOT, item)
-                                    player.sendMessage("§a3회 인첸트 달성 — 추가 인첸트가 적용되었습니다.")
+
                                 }
                             }
                         }

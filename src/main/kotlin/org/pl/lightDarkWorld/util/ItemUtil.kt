@@ -1,11 +1,20 @@
 package org.pl.lightDarkWorld.util
 
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Material
+import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import org.bukkit.persistence.PersistentDataType
 
 
 object ItemUtil {
+
+    private val BASE_LORE_KEY get() = NamespacedKey(org.pl.lightDarkWorld.RandomEnchantPlugin.instance, "enh_base_lore")
+    private const val LORE_DELIMITER = "\u0000"
+    private val legacySerializer = LegacyComponentSerializer.legacySection()
 
     fun canEnchant(item: ItemStack?): Boolean {
 
@@ -184,27 +193,40 @@ object ItemUtil {
      * 아이템 로어에 강화 레벨을 표시한다.
      * 1강 = ★☆☆☆☆☆☆☆☆☆
      * 10강 = ★★★★★★★★★★
+     *
+     * 주의: 예전 버전에서는 "현재 로어에서 강화 관련 줄만 문자열로 걸러내고 재생성"하는
+     * 방식이었는데, 확률 표시 위의 빈 줄이 필터에 걸리지 않아 시도할 때마다
+     * 로어가 계속 누적되는 버그가 있었다. 이를 막기 위해 아이템의 "원본 로어"를
+     * 최초 강화 시점에 PersistentDataContainer에 한 번만 저장해두고, 이후에는
+     * 항상 그 원본을 기준으로 강화 표시를 매번 새로 그린다.
      */
     fun setEnhancementLore(item: ItemStack, level: Int) {
         val meta = item.itemMeta ?: return
 
         val settings = org.pl.lightDarkWorld.RandomEnchantPlugin.instance.configManager.settings
         val max = settings.getInt("max-enhancement", 10)
+        val pdc = meta.persistentDataContainer
 
-        val lore = mutableListOf<net.kyori.adventure.text.Component>()
-
-        // 기존 로어 (강화 표시 제외)
-        val existingLore = meta.lore() ?: emptyList()
-        existingLore.forEach { component ->
-            val text = component.toString()
-            if (!text.contains("★") && !text.contains("☆") && !text.contains("성공확률") && !text.contains("파괴확률")) {
-                lore.add(component)
-            }
+        // 최초 1회에 한해 현재 로어를 "원본"으로 스냅샷 저장한다.
+        if (!pdc.has(BASE_LORE_KEY, PersistentDataType.STRING)) {
+            val currentLore = meta.lore() ?: emptyList()
+            val serialized = currentLore.joinToString(LORE_DELIMITER) { legacySerializer.serialize(it) }
+            pdc.set(BASE_LORE_KEY, PersistentDataType.STRING, serialized)
         }
+
+        val baseLoreRaw = pdc.get(BASE_LORE_KEY, PersistentDataType.STRING) ?: ""
+        val baseLore: List<Component> = if (baseLoreRaw.isEmpty()) {
+            emptyList()
+        } else {
+            baseLoreRaw.split(LORE_DELIMITER).map { legacySerializer.deserialize(it) }
+        }
+
+        val lore = mutableListOf<Component>()
+        lore.addAll(baseLore)
 
         // 강화 표시 추가 (항상 표시, 0강은 ☆만)
         val enhancement = "★".repeat(level) + "☆".repeat(max - level)
-        lore.add(0, net.kyori.adventure.text.Component.text("§6강화: $enhancement"))
+        lore.add(0, Component.text("§6강화: $enhancement"))
 
         // 다음 레벨 확률 표시 (가능한 경우)
         if (level < max) {
@@ -212,9 +234,9 @@ object ItemUtil {
             val success = settings.getInt("enhancement-success-rate.$target", 100 - (target - 1) * 10)
             val br = settings.getInt("enhancement-break-rate.$target", 0)
 
-            lore.add(net.kyori.adventure.text.Component.text(""))
-            lore.add(net.kyori.adventure.text.Component.text("성공확률: ").append(net.kyori.adventure.text.Component.text("${success}%").color(net.kyori.adventure.text.format.NamedTextColor.GREEN)))
-            lore.add(net.kyori.adventure.text.Component.text("파괴확률: ").append(net.kyori.adventure.text.Component.text("${br}%").color(net.kyori.adventure.text.format.NamedTextColor.RED)))
+            lore.add(Component.text(""))
+            lore.add(Component.text("성공확률: ").append(Component.text("${success}%").color(NamedTextColor.GREEN)))
+            lore.add(Component.text("파괴확률: ").append(Component.text("${br}%").color(NamedTextColor.RED)))
         }
 
         meta.lore(lore)
