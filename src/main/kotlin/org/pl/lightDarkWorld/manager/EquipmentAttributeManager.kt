@@ -15,9 +15,8 @@ import org.pl.lightDarkWorld.RandomEnchantPlugin
  *
  * 주의: 아이템에 커스텀 AttributeModifier를 하나라도 추가하면 마인크래프트는
  * 그 아이템의 바닐라 기본 어트리뷰트 전체(다른 속성까지 포함)를 더 이상 자동
- * 적용하지 않는다. 그래서 검/철퇴처럼 ATTACK_DAMAGE를 커스텀으로 건드리는
- * 무기는 원래 갖고 있던 ATTACK_SPEED 감소 수정치도 함께 명시적으로 다시
- * 추가해줘야 한다 (안 그러면 공격속도가 기본값 4.0으로 리셋되어버림).
+ * 적용하지 않는다. 그래서 무기의 ATTACK_DAMAGE, 네더라이트 방어구의
+ * KNOCKBACK_RESISTANCE처럼 바닐라가 원래 주던 값도 함께 다시 명시해줘야 한다.
  *
  * 활/도끼는 바닐라 어트리뷰트로 표현이 안 되는 효과(원거리 데미지%, 크리티컬 데미지%)라
  * 여기서는 다루지 않고 EnhancementAbilityListener에서 데미지 보정으로 처리한다.
@@ -62,16 +61,23 @@ object EquipmentAttributeManager {
 
     private val HELMET_ARMOR_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_helmet_armor")
     private val HELMET_HEALTH_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_helmet_health")
+    private val HELMET_KB_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_helmet_kb_resist")
     private val CHESTPLATE_ARMOR_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_chestplate_armor")
     private val CHESTPLATE_HEALTH_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_chestplate_health")
+    private val CHESTPLATE_KB_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_chestplate_kb_resist")
     private val LEGGINGS_ARMOR_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_leggings_armor")
     private val LEGGINGS_HEALTH_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_leggings_health")
+    private val LEGGINGS_KB_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_leggings_kb_resist")
     private val BOOTS_HEALTH_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_boots_health")
     private val BOOTS_SPEED_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_boots_speed")
+    private val BOOTS_KB_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_boots_kb_resist")
     private val SWORD_DAMAGE_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_sword_damage")
     private val SWORD_ATTACK_SPEED_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_sword_attack_speed")
     private val MACE_DAMAGE_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_mace_damage")
     private val MACE_ATTACK_SPEED_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_mace_attack_speed")
+
+    // 네더라이트 방어구 부위당 바닐라 기본 넉백저항 (10%)
+    private const val NETHERITE_KB_RESIST = 0.1
 
     /**
      * 강화 레벨에 맞춰 어트리뷰트를 다시 계산해 적용한다.
@@ -89,6 +95,7 @@ object EquipmentAttributeManager {
             EquipmentKind.HELMET -> {
                 meta.removeAttributeModifier(Attribute.ARMOR)
                 meta.removeAttributeModifier(Attribute.MAX_HEALTH)
+                meta.removeAttributeModifier(Attribute.KNOCKBACK_RESISTANCE)
                 val armor = settings.getDouble("enhancement-attributes.helmet.armor.$level", level * 0.5)
                 val health = settings.getDouble("enhancement-attributes.helmet.health.$level", level * 1.0)
                 meta.addAttributeModifier(
@@ -99,13 +106,22 @@ object EquipmentAttributeManager {
                     Attribute.MAX_HEALTH,
                     AttributeModifier(HELMET_HEALTH_KEY, health, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HEAD)
                 )
+                // 네더라이트는 바닐라 기본으로 넉백저항 10%를 갖고 있는데,
+                // 커스텀 어트리뷰트를 추가하는 순간 사라지므로 다시 명시해줘야 한다.
+                if (item.type == Material.NETHERITE_HELMET) {
+                    meta.addAttributeModifier(
+                        Attribute.KNOCKBACK_RESISTANCE,
+                        AttributeModifier(HELMET_KB_KEY, NETHERITE_KB_RESIST, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HEAD)
+                    )
+                }
 
             }
 
             EquipmentKind.CHESTPLATE -> {
                 meta.removeAttributeModifier(Attribute.ARMOR)
                 meta.removeAttributeModifier(Attribute.MAX_HEALTH)
-                val armor = settings.getDouble("enhancement-attributes.chestplate.armor.$level", level * 1.0)
+                meta.removeAttributeModifier(Attribute.KNOCKBACK_RESISTANCE)
+                val armor = settings.getDouble("enhancement-attributes.chestplate.armor.$level", level * 0.5)
                 val health = settings.getDouble("enhancement-attributes.chestplate.health.$level", level * 1.0)
                 meta.addAttributeModifier(
                     Attribute.ARMOR,
@@ -115,11 +131,18 @@ object EquipmentAttributeManager {
                     Attribute.MAX_HEALTH,
                     AttributeModifier(CHESTPLATE_HEALTH_KEY, health, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.CHEST)
                 )
+                if (item.type == Material.NETHERITE_CHESTPLATE) {
+                    meta.addAttributeModifier(
+                        Attribute.KNOCKBACK_RESISTANCE,
+                        AttributeModifier(CHESTPLATE_KB_KEY, NETHERITE_KB_RESIST, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.CHEST)
+                    )
+                }
             }
 
             EquipmentKind.LEGGINGS -> {
                 meta.removeAttributeModifier(Attribute.ARMOR)
                 meta.removeAttributeModifier(Attribute.MAX_HEALTH)
+                meta.removeAttributeModifier(Attribute.KNOCKBACK_RESISTANCE)
                 val armor = settings.getDouble("enhancement-attributes.leggings.armor.$level", level * 0.5)
                 val health = settings.getDouble("enhancement-attributes.leggings.health.$level", level * 1.0)
                 meta.addAttributeModifier(
@@ -130,11 +153,18 @@ object EquipmentAttributeManager {
                     Attribute.MAX_HEALTH,
                     AttributeModifier(LEGGINGS_HEALTH_KEY, health, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.LEGS)
                 )
+                if (item.type == Material.NETHERITE_LEGGINGS) {
+                    meta.addAttributeModifier(
+                        Attribute.KNOCKBACK_RESISTANCE,
+                        AttributeModifier(LEGGINGS_KB_KEY, NETHERITE_KB_RESIST, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.LEGS)
+                    )
+                }
             }
 
             EquipmentKind.BOOTS -> {
                 meta.removeAttributeModifier(Attribute.MAX_HEALTH)
                 meta.removeAttributeModifier(Attribute.MOVEMENT_SPEED)
+                meta.removeAttributeModifier(Attribute.KNOCKBACK_RESISTANCE)
                 val health = settings.getDouble("enhancement-attributes.boots.health.$level", level * 1.0)
                 val speed = settings.getDouble("enhancement-attributes.boots.speed.$level", level * 0.05)
                 meta.addAttributeModifier(
@@ -145,12 +175,18 @@ object EquipmentAttributeManager {
                     Attribute.MOVEMENT_SPEED,
                     AttributeModifier(BOOTS_SPEED_KEY, speed, AttributeModifier.Operation.ADD_SCALAR, EquipmentSlotGroup.FEET)
                 )
+                if (item.type == Material.NETHERITE_BOOTS) {
+                    meta.addAttributeModifier(
+                        Attribute.KNOCKBACK_RESISTANCE,
+                        AttributeModifier(BOOTS_KB_KEY, NETHERITE_KB_RESIST, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.FEET)
+                    )
+                }
             }
 
             EquipmentKind.SWORD -> {
                 meta.removeAttributeModifier(Attribute.ATTACK_DAMAGE)
                 meta.removeAttributeModifier(Attribute.ATTACK_SPEED)
-                val damage = settings.getDouble("enhancement-attributes.sword.damage.$level", level * 1.0)
+                val damage = settings.getDouble("enhancement-attributes.sword.damage.$level", level * 0.5)
                 meta.addAttributeModifier(
                     Attribute.ATTACK_DAMAGE,
                     AttributeModifier(SWORD_DAMAGE_KEY, damage, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND)
