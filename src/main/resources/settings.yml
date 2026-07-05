@@ -16,6 +16,9 @@ cost:
   levels: 30
   lapis: 4
 
+random-enchant:
+  click-interval: 5   # 이 값(클릭 횟수)마다 인첸트 1회 부여
+
 # 인첸트 레벨 가중치
 level-weight:
   1: 45
