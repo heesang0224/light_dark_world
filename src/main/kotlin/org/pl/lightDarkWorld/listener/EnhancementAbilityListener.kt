@@ -59,22 +59,7 @@ class EnhancementAbilityListener : Listener {
     // =========================
 // 도끼: 크리티컬 데미지% 보정
 // =========================
-    @EventHandler
-    fun onAxeCriticalHit(event: EntityDamageByEntityEvent) {
-        // 바닐라가 이미 크리티컬로 판정한 타격에만 추가 보정을 적용한다.
-        if (!event.isCritical) return
 
-        val player = event.damager as? Player ?: return
-        val item = player.inventory.itemInMainHand
-        if (EquipmentAttributeManager.kindOf(item.type) != EquipmentAttributeManager.EquipmentKind.AXE) return
-
-        val level = EnhancementManager.getLevel(item)
-        if (level <= 0) return
-
-        val settings = RandomEnchantPlugin.instance.configManager.settings
-        val percent = settings.getDouble("enhancement-attributes.axe.critical_damage_percent.$level", level * 1.0)
-        event.damage *= (1 + percent / 100.0)
-    }
 
 
 

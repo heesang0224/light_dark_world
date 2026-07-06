@@ -58,28 +58,27 @@ class InventoryListener : Listener {
                             return
                         }
 
-                        // 클릭 횟수만 증가시키고, 실제 인첸트 부여는 설정된 간격(기본 5회)마다
-                        // 정확히 1번만 수행한다. (예전엔 매 클릭 + 5번째 보너스로 총 2회 실행되어
-                        // 2번째, 3번째 클릭에서도 줄이 늘어나는 버그가 있었음)
-                        val countKey = NamespacedKey(RandomEnchantPlugin.instance, "enchant_count")
-                        val pdc = player.persistentDataContainer
-                        val current = pdc.getOrDefault(countKey, PersistentDataType.INTEGER, 0)
-                        val updated = current + 1
-                        pdc.set(countKey, PersistentDataType.INTEGER, updated)
+                        if (RandomEnchantManager.enchant(item)) {
+                            holder.item = item
+                            event.inventory.setItem(EnchantGUI.ITEM_SLOT, item)
 
-                        val interval = RandomEnchantPlugin.instance.configManager.settings
-                            .getInt("random-enchant.click-interval", 5)
+                            // 플레이어별 인첸트 횟수 증가
+                            val countKey = NamespacedKey(RandomEnchantPlugin.instance, "enchant_count")
+                            val pdc = player.persistentDataContainer
+                            val current = pdc.getOrDefault(countKey, PersistentDataType.INTEGER, 0)
+                            val updated = current + 1
+                            pdc.set(countKey, PersistentDataType.INTEGER, updated)
 
-                        if (interval > 0 && updated % interval == 0) {
-                            if (RandomEnchantManager.enchant(item)) {
-                                holder.item = item
-                                event.inventory.setItem(EnchantGUI.ITEM_SLOT, item)
-                                player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f)
+                            if (updated % 5 == 0) {
+                                if (RandomEnchantManager.enchant(item)) {
+                                    holder.item = item
+                                    event.inventory.setItem(EnchantGUI.ITEM_SLOT, item)
+                                    player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f)
+
+                                }
                             }
-                        } else {
-                            val remain = interval - (updated % interval)
-                            player.sendActionBar("§7다음 인첸트까지: §e${remain}회")
                         }
+
                     }
 
                     else -> event.isCancelled = true

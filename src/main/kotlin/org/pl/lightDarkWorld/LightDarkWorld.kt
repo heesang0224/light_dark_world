@@ -6,8 +6,8 @@ import org.pl.lightDarkWorld.listener.EnchantTableListener
 import org.pl.lightDarkWorld.listener.InventoryListener
 import org.pl.lightDarkWorld.listener.AnvilListener
 import org.pl.lightDarkWorld.listener.EnhancementAbilityListener
-import org.pl.lightDarkWorld.listener.DamageCheckListener
 import org.pl.lightDarkWorld.command.EnhanceCommand
+import org.pl.lightDarkWorld.listener.DamageCheckListener
 
 class RandomEnchantPlugin : JavaPlugin() {
 

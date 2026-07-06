@@ -81,6 +81,8 @@ object EquipmentAttributeManager {
     private val SWORD_ATTACK_SPEED_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_sword_attack_speed")
     private val MACE_DAMAGE_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_mace_damage")
     private val MACE_ATTACK_SPEED_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_mace_attack_speed")
+    private val AXE_DAMAGE_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_axe_damage" )
+    private val AXE_ATTACK_SPEED_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "enh_axe_attack_speed" )
 
     // 네더라이트 방어구 부위당 바닐라 기본 넉백저항 (10%)
     private const val NETHERITE_KB_RESIST = 0.1
@@ -93,6 +95,74 @@ object EquipmentAttributeManager {
         Material.NETHERITE_HELMET, Material.NETHERITE_CHESTPLATE,
         Material.NETHERITE_LEGGINGS, Material.NETHERITE_BOOTS -> 3.0
 
+        else -> 0.0
+    }
+
+    // 방어구 재질별 바닐라 기본 방어력
+    private fun baseArmorOf(material: Material): Double = when (material) {
+        Material.LEATHER_HELMET -> 1.0
+        Material.LEATHER_CHESTPLATE -> 3.0
+        Material.LEATHER_LEGGINGS -> 2.0
+        Material.LEATHER_BOOTS -> 1.0
+
+        Material.CHAINMAIL_HELMET -> 2.0
+        Material.CHAINMAIL_CHESTPLATE -> 5.0
+        Material.CHAINMAIL_LEGGINGS -> 4.0
+        Material.CHAINMAIL_BOOTS -> 1.0
+
+        Material.IRON_HELMET -> 2.0
+        Material.IRON_CHESTPLATE -> 6.0
+        Material.IRON_LEGGINGS -> 5.0
+        Material.IRON_BOOTS -> 2.0
+
+        Material.GOLDEN_HELMET -> 2.0
+        Material.GOLDEN_CHESTPLATE -> 5.0
+        Material.GOLDEN_LEGGINGS -> 3.0
+        Material.GOLDEN_BOOTS -> 1.0
+
+        Material.DIAMOND_HELMET -> 2.0
+        Material.DIAMOND_CHESTPLATE -> 8.0
+        Material.DIAMOND_LEGGINGS -> 6.0
+        Material.DIAMOND_BOOTS -> 2.0
+
+        Material.NETHERITE_HELMET -> 3.0
+        Material.NETHERITE_CHESTPLATE -> 8.0
+        Material.NETHERITE_LEGGINGS -> 6.0
+        Material.NETHERITE_BOOTS -> 3.0
+
+        Material.TURTLE_HELMET -> 2.0
+        Material.WOLF_ARMOR -> 8.0
+
+        else -> 0.0
+    }
+
+    // 검 재질별 바닐라 기본 데미지
+    private fun baseSwordDamageOf(material: Material): Double = when (material) {
+        Material.WOODEN_SWORD -> 4.0
+        Material.STONE_SWORD -> 5.0
+        Material.IRON_SWORD -> 6.0
+        Material.GOLDEN_SWORD -> 4.0
+        Material.DIAMOND_SWORD -> 7.0
+        Material.NETHERITE_SWORD -> 8.0
+        Material.COPPER_SWORD -> 5.0
+        else -> 0.0
+    }
+
+    // 도끼 재질별 바닐라 기본 데미지
+    private fun baseAxeDamageOf(material: Material): Double = when (material) {
+        Material.WOODEN_AXE -> 7.0
+        Material.STONE_AXE -> 9.0
+        Material.IRON_AXE -> 9.0
+        Material.GOLDEN_AXE -> 7.0
+        Material.DIAMOND_AXE -> 9.0
+        Material.NETHERITE_AXE -> 10.0
+        Material.COPPER_AXE -> 8.0
+        else -> 0.0
+    }
+
+    // 철퇴 재질별 바닐라 기본 데미지
+    private fun baseMaceDamageOf(material: Material): Double = when (material) {
+        Material.MACE -> 6.0
         else -> 0.0
     }
 
@@ -114,25 +184,22 @@ object EquipmentAttributeManager {
                 meta.removeAttributeModifier(Attribute.MAX_HEALTH)
                 meta.removeAttributeModifier(Attribute.KNOCKBACK_RESISTANCE)
                 meta.removeAttributeModifier(Attribute.ARMOR_TOUGHNESS)
-                val armor = settings.getDouble("enhancement-attributes.helmet.armor.$level", level * 0.5)
+                val baseArmor = baseArmorOf(item.type)
+                val armorBonus = settings.getDouble("enhancement-attributes.helmet.armor.$level", level * 0.5)
                 val health = settings.getDouble("enhancement-attributes.helmet.health.$level", level * 1.0)
                 val toughnessBonus = settings.getDouble("enhancement-attributes.helmet.toughness.$level", level * 0.1)
                 meta.addAttributeModifier(
                     Attribute.ARMOR,
-                    AttributeModifier(HELMET_ARMOR_KEY, armor, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HEAD)
+                    AttributeModifier(HELMET_ARMOR_KEY, baseArmor + armorBonus, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HEAD)
                 )
                 meta.addAttributeModifier(
                     Attribute.MAX_HEALTH,
                     AttributeModifier(HELMET_HEALTH_KEY, health, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HEAD)
                 )
-                // 커스텀 어트리뷰트를 추가하면 바닐라 기본 방어강도(다이아몬드 2.0 / 네더라이트 3.0)가
-                // 사라지므로, 재질별 기본값 + 강화 보너스를 합쳐서 다시 명시한다.
                 meta.addAttributeModifier(
                     Attribute.ARMOR_TOUGHNESS,
                     AttributeModifier(HELMET_TOUGHNESS_KEY, baseToughnessOf(item.type) + toughnessBonus, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HEAD)
                 )
-                // 네더라이트는 바닐라 기본으로 넉백저항 10%를 갖고 있는데,
-                // 커스텀 어트리뷰트를 추가하는 순간 사라지므로 다시 명시해줘야 한다.
                 if (item.type == Material.NETHERITE_HELMET) {
                     meta.addAttributeModifier(
                         Attribute.KNOCKBACK_RESISTANCE,
@@ -147,12 +214,13 @@ object EquipmentAttributeManager {
                 meta.removeAttributeModifier(Attribute.MAX_HEALTH)
                 meta.removeAttributeModifier(Attribute.KNOCKBACK_RESISTANCE)
                 meta.removeAttributeModifier(Attribute.ARMOR_TOUGHNESS)
-                val armor = settings.getDouble("enhancement-attributes.chestplate.armor.$level", level * 1.0)
+                val baseArmor = baseArmorOf(item.type)
+                val armorBonus = settings.getDouble("enhancement-attributes.chestplate.armor.$level", level * 1.0)
                 val health = settings.getDouble("enhancement-attributes.chestplate.health.$level", level * 1.0)
                 val toughnessBonus = settings.getDouble("enhancement-attributes.chestplate.toughness.$level", level * 0.1)
                 meta.addAttributeModifier(
                     Attribute.ARMOR,
-                    AttributeModifier(CHESTPLATE_ARMOR_KEY, armor, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.CHEST)
+                    AttributeModifier(CHESTPLATE_ARMOR_KEY, baseArmor + armorBonus, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.CHEST)
                 )
                 meta.addAttributeModifier(
                     Attribute.MAX_HEALTH,
@@ -175,12 +243,13 @@ object EquipmentAttributeManager {
                 meta.removeAttributeModifier(Attribute.MAX_HEALTH)
                 meta.removeAttributeModifier(Attribute.KNOCKBACK_RESISTANCE)
                 meta.removeAttributeModifier(Attribute.ARMOR_TOUGHNESS)
-                val armor = settings.getDouble("enhancement-attributes.leggings.armor.$level", level * 0.5)
+                val baseArmor = baseArmorOf(item.type)
+                val armorBonus = settings.getDouble("enhancement-attributes.leggings.armor.$level", level * 0.5)
                 val health = settings.getDouble("enhancement-attributes.leggings.health.$level", level * 1.0)
                 val toughnessBonus = settings.getDouble("enhancement-attributes.leggings.toughness.$level", level * 0.1)
                 meta.addAttributeModifier(
                     Attribute.ARMOR,
-                    AttributeModifier(LEGGINGS_ARMOR_KEY, armor, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.LEGS)
+                    AttributeModifier(LEGGINGS_ARMOR_KEY, baseArmor + armorBonus, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.LEGS)
                 )
                 meta.addAttributeModifier(
                     Attribute.MAX_HEALTH,
@@ -204,13 +273,14 @@ object EquipmentAttributeManager {
                 meta.removeAttributeModifier(Attribute.KNOCKBACK_RESISTANCE)
                 meta.removeAttributeModifier(Attribute.ARMOR_TOUGHNESS)
                 meta.removeAttributeModifier(Attribute.ARMOR)
+                val baseArmor = baseArmorOf(item.type)
                 val health = settings.getDouble("enhancement-attributes.boots.health.$level", level * 1.0)
                 val speed = settings.getDouble("enhancement-attributes.boots.speed.$level", level * 0.05)
                 val toughnessBonus = settings.getDouble("enhancement-attributes.boots.toughness.$level", level * 0.1)
-                val armor = settings.getDouble("enhancement-attributes.boots.armor.$level", level * 0.5)
+                val armorBonus = settings.getDouble("enhancement-attributes.boots.armor.$level", level * 0.5)
                 meta.addAttributeModifier(
                     Attribute.ARMOR,
-                    AttributeModifier(BOOTS_ARMOR_KEY, armor, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.FEET)
+                    AttributeModifier(BOOTS_ARMOR_KEY, baseArmor + armorBonus, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.FEET)
                 )
                 meta.addAttributeModifier(
                     Attribute.MAX_HEALTH,
@@ -235,10 +305,11 @@ object EquipmentAttributeManager {
             EquipmentKind.SWORD -> {
                 meta.removeAttributeModifier(Attribute.ATTACK_DAMAGE)
                 meta.removeAttributeModifier(Attribute.ATTACK_SPEED)
-                val damage = settings.getDouble("enhancement-attributes.sword.damage.$level", level * 0.5)
+                val baseDamage = baseSwordDamageOf(item.type)
+                val enhanceBonus = settings.getDouble("enhancement-attributes.sword.damage.$level", level * 1.0)
                 meta.addAttributeModifier(
                     Attribute.ATTACK_DAMAGE,
-                    AttributeModifier(SWORD_DAMAGE_KEY, damage, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND)
+                    AttributeModifier(SWORD_DAMAGE_KEY, baseDamage + enhanceBonus, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND)
                 )
                 // 커스텀 ATTACK_DAMAGE를 추가하면 바닐라 기본 공격속도 수정치(-2.4, 결과 1.6)가
                 // 함께 사라지므로 반드시 다시 명시해줘야 한다.
@@ -247,6 +318,22 @@ object EquipmentAttributeManager {
                     AttributeModifier(SWORD_ATTACK_SPEED_KEY, -2.4, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND)
                 )
             }
+            EquipmentKind.AXE -> {
+                meta.removeAttributeModifier(Attribute.ATTACK_DAMAGE)
+                val baseDamage = baseAxeDamageOf(item.type)
+                val enhanceBonus = settings.getDouble("enhancement-attributes.axe.damage.$level", level * 1.0)
+                meta.addAttributeModifier(
+                    Attribute.ATTACK_DAMAGE,
+                    AttributeModifier(AXE_DAMAGE_KEY, baseDamage + enhanceBonus, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND)
+                )
+                // 커스텀 ATTACK_DAMAGE를 추가하면 바닐라 기본 공격속도 수정치(-2.4, 결과 1.6)가
+                // 함께 사라지므로 반드시 다시 명시해줘야 한다.
+                meta.addAttributeModifier(
+                    Attribute.ATTACK_SPEED,
+                    AttributeModifier(AXE_ATTACK_SPEED_KEY, -3.4, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND)
+                )
+            }
+
 
             EquipmentKind.MACE -> {
                 meta.removeAttributeModifier(Attribute.ATTACK_DAMAGE)

@@ -20,7 +20,7 @@ kotlin {
 
 tasks {
     build {
-        dependsOn(shadowJar)
+
     }
 
     runServer {
@@ -36,5 +36,11 @@ tasks {
         filesMatching("plugin.yml") {
             expand(props)
         }
+    }
+    shadowJar {
+        archiveClassifier.set("")
+
+        // 🔥 이거 핵심 (runtimeClasspath 강제 포함)
+        configurations = listOf(project.configurations.runtimeClasspath.get())
     }
 }
