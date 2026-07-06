@@ -81,8 +81,8 @@ class EnhancementAbilityListener : Listener {
         val arrow = event.damager as? Arrow ?: return
         val level = arrow.persistentDataContainer.get(bowLevelKey, PersistentDataType.INTEGER) ?: return
         val settings = RandomEnchantPlugin.instance.configManager.settings
-        val percent = settings.getDouble("enhancement-attributes.bow.damage_percent.$level", level * 1.0)
-        event.damage *= (1 + percent / 100.0)
+        val flatDamage = settings.getDouble("enhancement-attributes.bow.damage.$level", level * 1.0)
+        event.damage += flatDamage
     }
 
     // =========================
