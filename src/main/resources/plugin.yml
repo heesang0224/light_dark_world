@@ -11,3 +11,5 @@ commands:
     usage: "/enhance <레벨(1-10)>"
     aliases: [enh]
     permission: lightdarkworld.enhance
+  nightvision:
+    description: "effect night_vision"
