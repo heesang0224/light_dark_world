@@ -10,7 +10,7 @@ import org.bukkit.potion.PotionEffectType
 
 class NightVisonCommand : CommandExecutor {
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
-        if (sender !is Player) return false
+        if (sender !is Player) return true
 
         val effect = PotionEffect(PotionEffectType.NIGHT_VISION, 999999, 0, false, false)
         sender.addPotionEffect(effect)
