@@ -24,6 +24,8 @@ import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.player.PlayerToggleFlightEvent
+import org.bukkit.event.player.PlayerMoveEvent
+import org.bukkit.GameMode
 import org.bukkit.attribute.Attribute
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.potion.PotionEffect
@@ -245,11 +247,16 @@ class EnhancementAbilityListener : Listener {
     // =========================
     // 부츠 10강: 스페이스바 두 번 눌러서 대시
     // =========================
-    @EventHandler
-    fun onBootsDash(event: PlayerToggleFlightEvent) {
-        if (!event.isFlying) return
 
+    // 착지할 때마다 allowFlight를 다시 켜서 다음 대시를 준비한다.
+    // 대시 발동 시 allowFlight = false로 꺼두기 때문에, 이게 없으면
+    // 착지 후에도 다시 대시를 쓸 수 없다.
+    @EventHandler
+    fun onBootsLand(event: PlayerMoveEvent) {
         val player = event.player
+        if (player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR) return
+        if (!player.isOnGround || player.allowFlight) return
+
         val boots = player.inventory.boots ?: return
         if (boots.type !in setOf(
                 Material.LEATHER_BOOTS, Material.CHAINMAIL_BOOTS, Material.IRON_BOOTS,
@@ -257,32 +264,30 @@ class EnhancementAbilityListener : Listener {
             )) return
         if (EnhancementManager.getLevel(boots) < 10) return
 
-        val now = System.currentTimeMillis()
-        val last = dashCooldown[player.uniqueId] ?: 0L
-        val settings = RandomEnchantPlugin.instance.configManager.settings
-        val cooldownSeconds = settings.getDouble("enhancement-abilities.boots.cooldown-seconds", 1.0)
-        val cooldownMs = (cooldownSeconds * 1000).toLong()
+        player.allowFlight = true
+    }
 
-        if (now - last < cooldownMs) {
-            event.isCancelled = true
+    @EventHandler
+    fun onBootsDash(event: PlayerToggleFlightEvent) {
+        if (!event.isFlying) return
 
-            // 쿨다운 중에도 클라이언트는 스페이스바 두 번으로 비행 진입을 시도하고 있어서
-            // 그냥 취소만 하면(특히 연타 시) 낙하하지 않고 계속 공중에 떠있는
-            // 무한 호버링 현상이 생긴다. 비행 상태를 명시적으로 끄고 아래로
-            // 살짝 밀어서 실제로 떨어지게 만든다.
-            player.isFlying = false
-            val v = player.velocity
-            player.velocity = Vector(v.x, minOf(v.y, -0.1), v.z)
-            return
-        }
+        val player = event.player
+        if (player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR) return
 
-        dashCooldown[player.uniqueId] = now
+        val boots = player.inventory.boots ?: return
+        if (boots.type !in setOf(
+                Material.LEATHER_BOOTS, Material.CHAINMAIL_BOOTS, Material.IRON_BOOTS,
+                Material.GOLDEN_BOOTS, Material.DIAMOND_BOOTS, Material.NETHERITE_BOOTS
+            )) return
+        if (EnhancementManager.getLevel(boots) < 10) return
 
-        // 비행 모드 진입 취소 + 클라이언트 flying 상태 강제 해제
-        // (isCancelled만 하면 클라이언트가 여전히 flying으로 인식해서 붕 뜬다)
         event.isCancelled = true
         player.isFlying = false
+        // 착지 전까지 다시 대시 못 하게 막는 핵심.
+        // allowFlight = true 재활성화는 onBootsLand에서 착지 시 처리.
+        player.allowFlight = false
 
+        val settings = RandomEnchantPlugin.instance.configManager.settings
         val direction = player.location.direction.normalize()
         val speedMultiplier = settings.getDouble("enhancement-abilities.boots.speed-multiplier", 1.0)
         val yBoost = settings.getDouble("enhancement-abilities.boots.y-boost", 0.3)
@@ -290,7 +295,6 @@ class EnhancementAbilityListener : Listener {
         val dash = Vector(direction.x, yBoost, direction.z).multiply(speedMultiplier)
         player.velocity = dash
 
-        // 낙하 데미지 활성화 (양수로 설정하면 낙뎀 계산)
         player.fallDistance = 0.1f
 
         player.world.spawnParticle(Particle.CLOUD, player.location.add(0.0, 1.0, 0.0), 20, 0.25, 0.25, 0.25, 0.02)
