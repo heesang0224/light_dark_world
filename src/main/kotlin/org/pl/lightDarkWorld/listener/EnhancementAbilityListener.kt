@@ -278,8 +278,10 @@ class EnhancementAbilityListener : Listener {
 
         dashCooldown[player.uniqueId] = now
 
-        // 비행 모드 진입 취소
+        // 비행 모드 진입 취소 + 클라이언트 flying 상태 강제 해제
+        // (isCancelled만 하면 클라이언트가 여전히 flying으로 인식해서 붕 뜬다)
         event.isCancelled = true
+        player.isFlying = false
 
         val direction = player.location.direction.normalize()
         val speedMultiplier = settings.getDouble("enhancement-abilities.boots.speed-multiplier", 1.0)
