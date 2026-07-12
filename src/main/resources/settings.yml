@@ -161,6 +161,6 @@ enhancement-abilities:
     stun-seconds: 3
   boots:
     cooldown-seconds: 1
-    speed-multiplier: 1.0
-    y-boost: 0.3
+    speed-multiplier: 1.5
+    y-boost: 0.5
     fall-damage-enabled: true

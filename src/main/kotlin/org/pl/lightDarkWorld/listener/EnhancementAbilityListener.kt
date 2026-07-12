@@ -22,7 +22,9 @@ import org.bukkit.event.entity.ProjectileLaunchEvent
 import org.bukkit.event.player.PlayerFishEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.player.PlayerToggleFlightEvent
+import org.bukkit.attribute.Attribute
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.potion.PotionEffect
 import org.bukkit.potion.PotionEffectType
@@ -296,8 +298,46 @@ class EnhancementAbilityListener : Listener {
     // PlayerArmorChangeEvent가 발생하지 않아 allowFlight가 켜지지 않는 문제를 보완한다.
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
-        val boots = event.player.inventory.boots ?: return
-        syncBootsFlight(event.player, boots)
+        val player = event.player
+
+        val boots = player.inventory.boots
+        if (boots != null) {
+            syncBootsFlight(player, boots)
+        }
+
+        restoreHealthRatio(player)
+    }
+
+    private val HEALTH_RATIO_KEY get() = NamespacedKey(RandomEnchantPlugin.instance, "quit_health_ratio")
+
+    // 퇴장 시점의 "현재체력/최대체력" 비율을 저장해둔다.
+    // 강화 방어구로 늘어난 최대체력(MAX_HEALTH 어트리뷰트)이 있는 상태로 서버를 나가면,
+    // 재접속 시 엔티티가 로드되는 순간 체력이 먼저 바닐라 기본 최대체력(20)에 맞춰
+    // 깎인 뒤에야 장비 어트리뷰트가 재적용되어 최대체력만 복구되고 현재체력은
+    // 깎인 채로 남는 문제가 있다. 비율을 저장해뒀다가 재접속 후 복원해서 해결한다.
+    @EventHandler
+    fun onPlayerQuit(event: PlayerQuitEvent) {
+        val player = event.player
+        val maxHealth = player.getAttribute(Attribute.MAX_HEALTH)?.value ?: return
+        if (maxHealth <= 0.0) return
+
+        val ratio = (player.health / maxHealth).coerceIn(0.0, 1.0)
+        player.persistentDataContainer.set(HEALTH_RATIO_KEY, PersistentDataType.DOUBLE, ratio)
+    }
+
+    private fun restoreHealthRatio(player: Player) {
+        val pdc = player.persistentDataContainer
+        val ratio = pdc.get(HEALTH_RATIO_KEY, PersistentDataType.DOUBLE) ?: return
+        pdc.remove(HEALTH_RATIO_KEY)
+
+        // 장비 어트리뷰트(최대체력)가 재적용될 시간을 주기 위해 1틱 뒤에 복원한다.
+        object : BukkitRunnable() {
+            override fun run() {
+                if (!player.isOnline || player.isDead) return
+                val maxHealth = player.getAttribute(Attribute.MAX_HEALTH)?.value ?: return
+                player.health = (maxHealth * ratio).coerceIn(0.0, maxHealth)
+            }
+        }.runTaskLater(RandomEnchantPlugin.instance, 1L)
     }
 
     private fun syncBootsFlight(player: Player, boots: org.bukkit.inventory.ItemStack) {
