@@ -265,6 +265,14 @@ class EnhancementAbilityListener : Listener {
 
         if (now - last < cooldownMs) {
             event.isCancelled = true
+
+            // 쿨다운 중에도 클라이언트는 스페이스바 두 번으로 비행 진입을 시도하고 있어서
+            // 그냥 취소만 하면(특히 연타 시) 낙하하지 않고 계속 공중에 떠있는
+            // 무한 호버링 현상이 생긴다. 비행 상태를 명시적으로 끄고 아래로
+            // 살짝 밀어서 실제로 떨어지게 만든다.
+            player.isFlying = false
+            val v = player.velocity
+            player.velocity = Vector(v.x, minOf(v.y, -0.1), v.z)
             return
         }
 
@@ -330,14 +338,42 @@ class EnhancementAbilityListener : Listener {
         val ratio = pdc.get(HEALTH_RATIO_KEY, PersistentDataType.DOUBLE) ?: return
         pdc.remove(HEALTH_RATIO_KEY)
 
-        // 장비 어트리뷰트(최대체력)가 재적용될 시간을 주기 위해 1틱 뒤에 복원한다.
+        val expectedMax = expectedMaxHealth(player)
+
+        // 로그인 시 이미 장착돼 있던 방어구는 장비 어트리뷰트(최대체력) 재계산이
+        // 1틱만으로는 안 끝나는 경우가 있어서, 실제로 반영될 때까지 몇 틱 더
+        // 기다린다(최대 20틱 = 1초, 안전장치). 그 전에 비율을 적용하면
+        // 아직 낮은 maxHealth 기준으로 계산돼서 추가 체력이 안 채워진다.
         object : BukkitRunnable() {
+            var ticks = 0
             override fun run() {
-                if (!player.isOnline || player.isDead) return
-                val maxHealth = player.getAttribute(Attribute.MAX_HEALTH)?.value ?: return
-                player.health = (maxHealth * ratio).coerceIn(0.0, maxHealth)
+                if (!player.isOnline || player.isDead) {
+                    cancel()
+                    return
+                }
+
+                val currentMax = player.getAttribute(Attribute.MAX_HEALTH)?.value ?: 20.0
+                ticks++
+
+                if (currentMax + 0.01 < expectedMax && ticks < 20) return
+
+                player.health = (currentMax * ratio).coerceIn(0.5, currentMax)
+                cancel()
             }
-        }.runTaskLater(RandomEnchantPlugin.instance, 1L)
+        }.runTaskTimer(RandomEnchantPlugin.instance, 1L, 1L)
+    }
+
+    // 현재 장착된 방어구 기준으로 실제로 도달해야 할 최대체력을 직접 계산한다.
+    // (엔진의 어트리뷰트 재계산 타이밍에 의존하지 않기 위한 기준값)
+    private fun expectedMaxHealth(player: Player): Double {
+        val base = player.getAttribute(Attribute.MAX_HEALTH)?.baseValue ?: 20.0
+        val inv = player.inventory
+        var bonus = 0.0
+        for (item in listOf(inv.helmet, inv.chestplate, inv.leggings, inv.boots)) {
+            val meta = item?.itemMeta ?: continue
+            meta.getAttributeModifiers(Attribute.MAX_HEALTH)?.forEach { bonus += it.amount }
+        }
+        return base + bonus
     }
 
     private fun syncBootsFlight(player: Player, boots: org.bukkit.inventory.ItemStack) {
