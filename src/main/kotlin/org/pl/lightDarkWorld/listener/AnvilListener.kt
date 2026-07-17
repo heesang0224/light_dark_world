@@ -25,10 +25,15 @@ class AnvilListener : Listener {
 
         if (block.type != Material.ANVIL) return
 
+        // 웅크린 채 우클릭 시 바닐라 모루 GUI로 우회 (이름 변경 등)
+        if (event.player.isSneaking) return
+
         event.isCancelled = true
 
         EnhancementGUII.open(event.player)
     }
+
+
 
     @EventHandler
     fun onClick(event: InventoryClickEvent) {
