@@ -51,6 +51,7 @@ class BeaconKeepInventoryListener : Listener {
         val effects = beaconEffects[event.entity.uniqueId]
         if (!effects.isNullOrEmpty()) {
             event.setKeepInventory(true)
+            event.drops.clear()
         }
     }
 
