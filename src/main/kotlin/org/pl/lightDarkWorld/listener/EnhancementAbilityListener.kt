@@ -1,10 +1,8 @@
 package org.pl.lightDarkWorld.listener
 
-import com.destroystokyo.paper.event.player.PlayerArmorChangeEvent
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
-import org.bukkit.Particle
 import org.bukkit.Sound
 import org.bukkit.entity.Arrow
 import org.bukkit.entity.Player
@@ -20,10 +18,7 @@ import org.bukkit.event.player.PlayerFishEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
-import org.bukkit.event.player.PlayerToggleFlightEvent
-import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.event.player.PlayerRiptideEvent
-import org.bukkit.GameMode
 import org.bukkit.attribute.Attribute
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.potion.PotionEffect
@@ -43,7 +38,6 @@ import java.util.concurrent.ThreadLocalRandom
 class EnhancementAbilityListener : Listener {
 
     private val maceCooldown = mutableMapOf<UUID, Long>()
-    private val dashCooldown = mutableMapOf<UUID, Long>() // 대시 방어 코드용으로 활용됩니다.
     private val tridentCooldown = mutableMapOf<UUID, Long>()
 
     private var isSpawningTridentBurst = false
@@ -212,84 +206,9 @@ class EnhancementAbilityListener : Listener {
         stunPlayer(caught, stunSeconds * 20L)
     }
 
-    // =========================
-    // 부츠 10강: 스페이스바 두 번 눌러서 대시
-    // =========================
-
-    @EventHandler
-    fun onBootsLand(event: PlayerMoveEvent) {
-        val player = event.player
-        if (player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR) return
-
-        // 1. 땅에 확실히 딛고 있는지, 이미 날 수 있는 상태인지 확인
-        if (!player.isOnGround || player.allowFlight) return
-
-        // [버그 수정 핵심 1] 대시 발동 후 0.4초가 지나지 않았다면 착지 처리를 무시합니다.
-        // 대시 순간에 온그라운드가 순간적으로 다시 켜져서 생기는 무한 대시 버그를 완벽히 막아줍니다.
-        val lastDash = dashCooldown[player.uniqueId] ?: 0L
-        if (System.currentTimeMillis() - lastDash < 400) return
-
-        val boots = player.inventory.boots ?: return
-        if (boots.type !in setOf(
-                Material.LEATHER_BOOTS, Material.CHAINMAIL_BOOTS, Material.IRON_BOOTS,
-                Material.GOLDEN_BOOTS, Material.DIAMOND_BOOTS, Material.NETHERITE_BOOTS
-            )) return
-        if (EnhancementManager.getLevel(boots) < 10) return
-
-        player.allowFlight = true
-    }
-
-    @EventHandler
-    fun onBootsDash(event: PlayerToggleFlightEvent) {
-        if (!event.isFlying) return
-
-        val player = event.player
-        if (player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR) return
-
-        val boots = player.inventory.boots ?: return
-        if (boots.type !in setOf(
-                Material.LEATHER_BOOTS, Material.CHAINMAIL_BOOTS, Material.IRON_BOOTS,
-                Material.GOLDEN_BOOTS, Material.DIAMOND_BOOTS, Material.NETHERITE_BOOTS
-            )) return
-        if (EnhancementManager.getLevel(boots) < 10) return
-
-        event.isCancelled = true
-        player.isFlying = false
-
-        // 착지 전까지 비행 허용을 해제하여 공중 연속 연타 대시를 원천 차단합니다.
-        player.allowFlight = false
-
-        // [버그 수정 핵심 2] 현재 대시한 시간을 기록하여 즉각적인 착지 판정 리셋을 유예합니다.
-        dashCooldown[player.uniqueId] = System.currentTimeMillis()
-
-        val settings = RandomEnchantPlugin.instance.configManager.settings
-        val direction = player.location.direction.normalize()
-        val speedMultiplier = settings.getDouble("enhancement-abilities.boots.speed-multiplier", 1.0)
-        val yBoost = settings.getDouble("enhancement-abilities.boots.y-boost", 0.3)
-
-        val dash = Vector(direction.x, yBoost, direction.z).multiply(speedMultiplier)
-        player.velocity = dash
-
-        player.fallDistance = 0.1f
-
-        player.world.spawnParticle(Particle.CLOUD, player.location.add(0.0, 1.0, 0.0), 20, 0.25, 0.25, 0.25, 0.02)
-        player.world.spawnParticle(Particle.SWEEP_ATTACK, player.location.add(0.0, 1.0, 0.0), 6, 0.2, 0.2, 0.2, 0.0)
-        player.world.playSound(player.location, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.0f, 1.2f)
-    }
-
-    @EventHandler
-    fun onArmorChange(event: PlayerArmorChangeEvent) {
-        if (event.slot != org.bukkit.inventory.EquipmentSlot.FEET) return
-        syncBootsFlight(event.player, event.newItem)
-    }
-
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
         val player = event.player
-        val boots = player.inventory.boots
-        if (boots != null) {
-            syncBootsFlight(player, boots)
-        }
         restoreHealthRatio(player)
     }
 
@@ -340,25 +259,6 @@ class EnhancementAbilityListener : Listener {
             meta.getAttributeModifiers(Attribute.MAX_HEALTH)?.forEach { bonus += it.amount }
         }
         return base + bonus
-    }
-
-    private fun syncBootsFlight(player: Player, boots: org.bukkit.inventory.ItemStack) {
-        if (player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR) return
-
-        val is10Boots = boots.type in setOf(
-            Material.LEATHER_BOOTS, Material.CHAINMAIL_BOOTS, Material.IRON_BOOTS,
-            Material.GOLDEN_BOOTS, Material.DIAMOND_BOOTS, Material.NETHERITE_BOOTS
-        ) && EnhancementManager.getLevel(boots) >= 10
-
-        // [버그 수정 핵심 3] 공중에서 장비를 뺐다 껴서 대시를 초기화하는 편법 방지
-        // 10강 장화여도 오직 '땅 위에 있을 때만' 비행을 허용하여 대시를 충전시킵니다.
-        if (is10Boots) {
-            if (player.isOnGround) {
-                player.allowFlight = true
-            }
-        } else {
-            player.allowFlight = false
-        }
     }
 
     private fun stunPlayer(target: Player, durationTicks: Long) {
