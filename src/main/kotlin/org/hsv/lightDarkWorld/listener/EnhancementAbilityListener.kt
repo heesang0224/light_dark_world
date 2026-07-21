@@ -1,4 +1,4 @@
-package org.pl.lightDarkWorld.listener
+package org.hsv.lightDarkWorld.listener
 
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -25,8 +25,8 @@ import org.bukkit.potion.PotionEffect
 import org.bukkit.potion.PotionEffectType
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.util.Vector
-import org.pl.lightDarkWorld.RandomEnchantPlugin
-import org.pl.lightDarkWorld.manager.EnhancementManager
+import org.hsv.lightDarkWorld.RandomEnchantPlugin
+import org.hsv.lightDarkWorld.manager.EnhancementManager
 import java.util.UUID
 import org.bukkit.entity.AbstractArrow
 import java.util.concurrent.ThreadLocalRandom

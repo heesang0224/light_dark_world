@@ -1,14 +1,14 @@
-package org.pl.lightDarkWorld
+package org.hsv.lightDarkWorld
 
 import org.bukkit.plugin.java.JavaPlugin
-import org.pl.lightDarkWorld.config.ConfigManager
-import org.pl.lightDarkWorld.listener.EnchantTableListener
-import org.pl.lightDarkWorld.listener.InventoryListener
-import org.pl.lightDarkWorld.listener.AnvilListener
-import org.pl.lightDarkWorld.listener.EnhancementAbilityListener
-import org.pl.lightDarkWorld.command.EnhanceCommand
-import org.pl.lightDarkWorld.command.NightVisonCommand
-import org.pl.lightDarkWorld.listener.BeaconKeepInventoryListener
+import org.hsv.lightDarkWorld.config.ConfigManager
+import org.hsv.lightDarkWorld.listener.EnchantTableListener
+import org.hsv.lightDarkWorld.listener.InventoryListener
+import org.hsv.lightDarkWorld.listener.AnvilListener
+import org.hsv.lightDarkWorld.listener.EnhancementAbilityListener
+import org.hsv.lightDarkWorld.command.EnhanceCommand
+import org.hsv.lightDarkWorld.command.NightVisonCommand
+import org.hsv.lightDarkWorld.listener.BeaconKeepInventoryListener
 
 
 class RandomEnchantPlugin : JavaPlugin() {

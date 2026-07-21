@@ -1,9 +1,9 @@
-package org.pl.lightDarkWorld.gui
+package org.hsv.lightDarkWorld.gui
 
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
-import org.pl.lightDarkWorld.manager.EnhancementOffer
+import org.hsv.lightDarkWorld.manager.EnhancementOffer
 
 class GUIHolder : InventoryHolder {
 

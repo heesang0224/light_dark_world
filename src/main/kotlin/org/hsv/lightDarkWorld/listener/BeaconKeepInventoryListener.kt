@@ -1,4 +1,4 @@
-package org.pl.lightDarkWorld.listener
+package org.hsv.lightDarkWorld.listener
 
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler

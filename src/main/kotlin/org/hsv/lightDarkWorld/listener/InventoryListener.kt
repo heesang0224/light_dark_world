@@ -1,20 +1,17 @@
-package org.pl.lightDarkWorld.listener
+package org.hsv.lightDarkWorld.listener
 
-import org.bukkit.Particle
 import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
-import org.bukkit.inventory.ItemStack
-import org.pl.lightDarkWorld.gui.EnchantGUI
+import org.hsv.lightDarkWorld.gui.EnchantGUI
 
-import org.pl.lightDarkWorld.gui.GUIHolder
-import org.pl.lightDarkWorld.manager.RandomEnchantManager
-import org.pl.lightDarkWorld.manager.EnhancementManager
-import org.pl.lightDarkWorld.util.ItemUtil
-import org.pl.lightDarkWorld.RandomEnchantPlugin
+import org.hsv.lightDarkWorld.gui.GUIHolder
+import org.hsv.lightDarkWorld.manager.RandomEnchantManager
+import org.hsv.lightDarkWorld.util.ItemUtil
+import org.hsv.lightDarkWorld.RandomEnchantPlugin
 import org.bukkit.NamespacedKey
 import org.bukkit.persistence.PersistentDataType
 

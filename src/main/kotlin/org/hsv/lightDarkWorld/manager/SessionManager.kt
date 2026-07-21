@@ -1,7 +1,7 @@
-package org.pl.lightDarkWorld.manager
+package org.hsv.lightDarkWorld.manager
 
 import org.bukkit.entity.Player
-import org.pl.lightDarkWorld.model.EnchantSession
+import org.hsv.lightDarkWorld.model.EnchantSession
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 

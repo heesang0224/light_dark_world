@@ -1,4 +1,4 @@
-package org.pl.lightDarkWorld.command
+package org.hsv.lightDarkWorld.command
 
 import org.bukkit.Sound
 import org.bukkit.command.Command

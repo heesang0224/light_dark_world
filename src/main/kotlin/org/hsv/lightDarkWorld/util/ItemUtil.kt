@@ -1,4 +1,4 @@
-package org.pl.lightDarkWorld.util
+package org.hsv.lightDarkWorld.util
 
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -12,7 +12,7 @@ import org.bukkit.persistence.PersistentDataType
 
 object ItemUtil {
 
-    private val BASE_LORE_KEY get() = NamespacedKey(org.pl.lightDarkWorld.RandomEnchantPlugin.instance, "enh_base_lore")
+    private val BASE_LORE_KEY get() = NamespacedKey(org.hsv.lightDarkWorld.RandomEnchantPlugin.instance, "enh_base_lore")
     private const val LORE_DELIMITER = "\u0000"
     private val legacySerializer = LegacyComponentSerializer.legacySection()
 
@@ -203,7 +203,7 @@ object ItemUtil {
     fun setEnhancementLore(item: ItemStack, level: Int) {
         val meta = item.itemMeta ?: return
 
-        val settings = org.pl.lightDarkWorld.RandomEnchantPlugin.instance.configManager.settings
+        val settings = org.hsv.lightDarkWorld.RandomEnchantPlugin.instance.configManager.settings
         val max = settings.getInt("max-enhancement", 10)
         val pdc = meta.persistentDataContainer
 

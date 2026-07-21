@@ -1,11 +1,11 @@
-package org.pl.lightDarkWorld.listener
+package org.hsv.lightDarkWorld.listener
 
 import org.bukkit.Material
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.player.PlayerInteractEvent
-import org.pl.lightDarkWorld.gui.EnchantGUI
+import org.hsv.lightDarkWorld.gui.EnchantGUI
 
 class EnchantTableListener : Listener {
 

@@ -1,4 +1,4 @@
-package org.pl.lightDarkWorld.model
+package org.hsv.lightDarkWorld.model
 
 import org.bukkit.inventory.ItemStack
 

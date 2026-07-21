@@ -1,4 +1,4 @@
-package org.pl.lightDarkWorld.config
+package org.hsv.lightDarkWorld.config
 
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.java.JavaPlugin

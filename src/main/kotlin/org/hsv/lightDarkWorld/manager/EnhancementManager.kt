@@ -1,11 +1,11 @@
-package org.pl.lightDarkWorld.manager
+package org.hsv.lightDarkWorld.manager
 
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
-import org.pl.lightDarkWorld.RandomEnchantPlugin
-import org.pl.lightDarkWorld.util.ItemUtil
+import org.hsv.lightDarkWorld.RandomEnchantPlugin
+import org.hsv.lightDarkWorld.util.ItemUtil
 import kotlin.random.Random
 /**
  * 모루 강화 결과.

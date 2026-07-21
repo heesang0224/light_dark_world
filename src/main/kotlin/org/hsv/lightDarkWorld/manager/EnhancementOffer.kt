@@ -1,4 +1,4 @@
-package org.pl.lightDarkWorld.manager
+package org.hsv.lightDarkWorld.manager
 
 import org.bukkit.inventory.ItemStack
 

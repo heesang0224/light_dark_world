@@ -1,11 +1,11 @@
-package org.pl.lightDarkWorld.command
+package org.hsv.lightDarkWorld.command
 
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
-import org.pl.lightDarkWorld.manager.EnhancementManager
-import org.pl.lightDarkWorld.util.ItemUtil
+import org.hsv.lightDarkWorld.manager.EnhancementManager
+import org.hsv.lightDarkWorld.util.ItemUtil
 
 class EnhanceCommand : CommandExecutor {
 
@@ -47,7 +47,7 @@ class EnhanceCommand : CommandExecutor {
             return true
         }
 
-        val settings = org.pl.lightDarkWorld.RandomEnchantPlugin.instance.configManager.settings
+        val settings = org.hsv.lightDarkWorld.RandomEnchantPlugin.instance.configManager.settings
         val maxLevel = settings.getInt("max-enhancement", 10)
 
         if (level < 0 || level > maxLevel) {

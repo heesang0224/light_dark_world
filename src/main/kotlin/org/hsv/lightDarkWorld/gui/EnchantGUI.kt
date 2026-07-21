@@ -1,5 +1,4 @@
-package org.pl.lightDarkWorld.gui
-
+package org.hsv.lightDarkWorld.gui
 
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -9,22 +8,20 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 
-object EnhancementGUII {
+object EnchantGUI {
 
     const val ITEM_SLOT = 22
     const val CLOSE_SLOT = 49
 
-    /**
-     * @param presetItem 이미 선택된 아이템을 들고 GUI를 열고 싶을 때 전달 (없으면 슬롯을 비워서 연다)
-     */
-    fun open(player: Player, presetItem: ItemStack? = null) {
+    fun open(player: Player) {
+
         val holder = GUIHolder()
-        holder.guiType = "enhance"
+        holder.guiType = "enchant"
 
         val inv: Inventory = Bukkit.createInventory(
             holder,
             54,
-            Component.text("강화", NamedTextColor.DARK_PURPLE)
+            Component.text("랜덤 인첸트", NamedTextColor.AQUA)
         )
 
         holder.setInventory(inv)
@@ -39,14 +36,7 @@ object EnhancementGUII {
             inv.setItem(i, glass)
         }
 
-        if (presetItem != null) {
-            val item = presetItem.clone()
-            item.amount = 1
-            holder.item = item
-            inv.setItem(ITEM_SLOT, item)
-        } else {
-            inv.setItem(ITEM_SLOT, null)
-        }
+        inv.setItem(ITEM_SLOT, null)
 
         val close = ItemStack(Material.BARRIER)
 

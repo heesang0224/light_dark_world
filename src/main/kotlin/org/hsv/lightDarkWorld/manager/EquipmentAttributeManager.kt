@@ -1,4 +1,4 @@
-package org.pl.lightDarkWorld.manager
+package org.hsv.lightDarkWorld.manager
 
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
@@ -6,7 +6,7 @@ import org.bukkit.attribute.Attribute
 import org.bukkit.attribute.AttributeModifier
 import org.bukkit.inventory.EquipmentSlotGroup
 import org.bukkit.inventory.ItemStack
-import org.pl.lightDarkWorld.RandomEnchantPlugin
+import org.hsv.lightDarkWorld.RandomEnchantPlugin
 
 /**
  * 강화 레벨에 따라 장비 종류별 패시브 어트리뷰트(능력치)를 부여한다.

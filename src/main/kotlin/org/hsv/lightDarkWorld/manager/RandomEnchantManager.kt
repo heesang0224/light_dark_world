@@ -1,8 +1,7 @@
-package org.pl.lightDarkWorld.manager
+package org.hsv.lightDarkWorld.manager
 
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.inventory.ItemStack
-import org.pl.lightDarkWorld.RandomEnchantPlugin
 import kotlin.random.Random
 
 object RandomEnchantManager {
