@@ -40,7 +40,7 @@ tasks {
     shadowJar {
         archiveClassifier.set("")
 
-        // 🔥 이거 핵심 (runtimeClasspath 강제 포함)
+        
         configurations = listOf(project.configurations.runtimeClasspath.get())
     }
 }
